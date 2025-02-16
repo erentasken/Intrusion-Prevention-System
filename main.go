@@ -34,9 +34,18 @@ func main() {
 
 	// // Load NFQUEUE numbers from environment variables
 	queueNames := []string{
-		"ARP_QUEUE", "ICMP_QUEUE", "TCP_SYN_QUEUE", "TCP_QUEUE",
-		"UDP_QUEUE", "FRAGMENT_QUEUE", "PORT_SCAN_QUEUE", "SSL_TLS_QUEUE",
-		"SMB_QUEUE", "DNS_QUEUE",
+		"ICMP_QUEUE",
+		"TCP_SYN_QUEUE",
+		"TCP_QUEUE",
+		"UDP_QUEUE",
+		"HTTP_QUEUE",
+		"HTTPS_QUEUE",
+		"SMTP_QUEUE",
+		"POP3_QUEUE",
+		"IMAP_QUEUE",
+		"OUTPUT_QUEUE",
+		"SMB_QUEUE",
+		"DNS_QUEUE",
 	}
 
 	for _, name := range queueNames {

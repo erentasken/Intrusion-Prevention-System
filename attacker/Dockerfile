@@ -25,9 +25,6 @@ RUN python3 -m venv /venv
 RUN /venv/bin/pip install --upgrade pip
 RUN /venv/bin/pip install scapy requests
 
-# Copy attack scripts
-COPY attack-scripts/ /attack-scripts/
-RUN chmod +x /attack-scripts/*.sh
 
-# Use the virtual environment when running scripts
-CMD ["/bin/bash", "-c", "source /venv/bin/activate && /attack-scripts/run_all.sh"]
+# Start bash to keep the container running (for manual debugging)
+CMD ["/bin/bash", "-c", "tail -f /dev/null"]
