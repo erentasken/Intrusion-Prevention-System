@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"main/analyzer"
 	"main/iptables"
 	"os"
 	"os/signal"
@@ -35,17 +36,9 @@ func main() {
 	// // Load NFQUEUE numbers from environment variables
 	queueNames := []string{
 		"ICMP_QUEUE",
-		"TCP_SYN_QUEUE",
 		"TCP_QUEUE",
 		"UDP_QUEUE",
-		"HTTP_QUEUE",
-		"HTTPS_QUEUE",
-		"SMTP_QUEUE",
-		"POP3_QUEUE",
-		"IMAP_QUEUE",
-		"OUTPUT_QUEUE",
-		"SMB_QUEUE",
-		"DNS_QUEUE",
+		"OUTPUT_TCP_QUEUE",
 	}
 
 	for _, name := range queueNames {
@@ -94,7 +87,26 @@ func queueHandler(queueNum uint16) {
 	fn := func(a nfqueue.Attribute) int {
 		id := *a.PacketID
 
-		fmt.Printf("%d : [%d]\t%v\n", queueNum, id, *a.Payload)
+		tcpQueue, err := strconv.Atoi(os.Getenv("TCP_QUEUE"))
+
+		if err != nil {
+			fmt.Println("Invalid NFQUEUE number for TCP_SYN_QUEUE:", err)
+			return -1
+		}
+
+		udpQueue, err := strconv.Atoi(os.Getenv("UDP_QUEUE"))
+		if err != nil {
+			fmt.Println("Invalid NFQUEUE number for UDP_QUEUE:", err)
+			return -1
+		}
+
+		if queueNum == uint16(tcpQueue) {
+			analyzer.AnalyzeTCP(id, *a.Payload)
+		}
+
+		if queueNum == uint16(udpQueue) {
+			analyzer.AnalyzeUDP(id, *a.Payload)
+		}
 
 		nf.SetVerdict(id, nfqueue.NfAccept)
 		return 0

@@ -45,19 +45,19 @@ func PrepareNFQueues() error {
 		}
 	}
 
+	// TCP PORTS TO MONITOR
+	// 80 http
+	// 443 https
+	// 25 smtp
+	// 110 pop3
+	// 143 imap
+	// 445 smb
+
 	nfqueueRules := [][]string{
-		{"iptables", "-A", "INPUT", "-p", "tcp", "--dport", "80", "-j", "NFQUEUE", "--queue-num", os.Getenv("HTTP_QUEUE")},   // HTTP (XSS, SQL Injection)
-		{"iptables", "-A", "INPUT", "-p", "tcp", "--dport", "443", "-j", "NFQUEUE", "--queue-num", os.Getenv("HTTPS_QUEUE")}, // HTTPS (XSS, SQL Injection)
-		{"iptables", "-A", "INPUT", "-p", "icmp", "-j", "NFQUEUE", "--queue-num", os.Getenv("ICMP_QUEUE")},                   // ICMP (Ping Floods)
-		{"iptables", "-A", "INPUT", "-p", "tcp", "--syn", "-j", "NFQUEUE", "--queue-num", os.Getenv("TCP_SYN_QUEUE")},        // TCP SYN (DDoS, SYN Floods)
-		{"iptables", "-A", "INPUT", "-p", "udp", "--dport", "53", "-j", "NFQUEUE", "--queue-num", os.Getenv("DNS_QUEUE")},    // DNS (Amplification, DDoS)
-		{"iptables", "-A", "INPUT", "-p", "tcp", "--dport", "25", "-j", "NFQUEUE", "--queue-num", os.Getenv("SMTP_QUEUE")},   // SMTP (Phishing)
-		{"iptables", "-A", "INPUT", "-p", "tcp", "--dport", "110", "-j", "NFQUEUE", "--queue-num", os.Getenv("POP3_QUEUE")},  // POP3 (Phishing)
-		{"iptables", "-A", "INPUT", "-p", "tcp", "--dport", "143", "-j", "NFQUEUE", "--queue-num", os.Getenv("IMAP_QUEUE")},  // IMAP (Phishing)
-		{"iptables", "-A", "OUTPUT", "-p", "tcp", "-j", "NFQUEUE", "--queue-num", os.Getenv("OUTPUT_QUEUE")},                 // Outgoing Traffic (Insider Threats, Malware)
-		{"iptables", "-A", "INPUT", "-p", "tcp", "--dport", "445", "-j", "NFQUEUE", "--queue-num", os.Getenv("SMB_QUEUE")},   // SMB (Ransomware, Lateral Movement)
-		{"iptables", "-A", "INPUT", "-p", "tcp", "-j", "NFQUEUE", "--queue-num", os.Getenv("TCP_QUEUE")},                     // General TCP (Port Scanning, Buffer Overflow)
-		{"iptables", "-A", "INPUT", "-p", "udp", "-j", "NFQUEUE", "--queue-num", os.Getenv("UDP_QUEUE")},                     // UDP (DDoS, Amplification)
+		{"iptables", "-A", "INPUT", "-p", "icmp", "-j", "NFQUEUE", "--queue-num", os.Getenv("ICMP_QUEUE")},       // ICMP (Ping Floods)
+		{"iptables", "-A", "OUTPUT", "-p", "tcp", "-j", "NFQUEUE", "--queue-num", os.Getenv("OUTPUT_TCP_QUEUE")}, // Outgoing Traffic (Insider Threats, Malware)
+		{"iptables", "-A", "INPUT", "-p", "tcp", "-j", "NFQUEUE", "--queue-num", os.Getenv("TCP_QUEUE")},         // General TCP (Port Scanning, Buffer Overflow)
+		{"iptables", "-A", "INPUT", "-p", "udp", "-j", "NFQUEUE", "--queue-num", os.Getenv("UDP_QUEUE")},         // UDP (DDoS, Amplification)
 	}
 
 	fmt.Println("[*] Applying iptables rules...")
