@@ -33,6 +33,7 @@ type TCPInfo struct {
 	ACK                  bool
 	FIN                  bool
 	RST                  bool
+	Payload              []byte // Store TCP payload data
 }
 
 // Define a struct to represent UDP header information
@@ -42,6 +43,22 @@ type UDPInfo struct {
 	Length          uint16
 	Checksum        uint16
 	Payload         []byte // Store UDP payload data
+}
+
+type ICMPInfo struct {
+	Type     uint8
+	Code     uint8
+	Checksum uint16
+	ID       uint16
+	Sequence uint16
+}
+
+// Define a struct to represent the analysis of an ICMP packet
+type PacketAnalysisICMP struct {
+	PacketID uint32
+	IPv4     *IPv4Info
+	IPv6     *IPv6Info
+	ICMP     *ICMPInfo
 }
 
 // Define a struct to represent the analysis of a TCP packet

@@ -108,6 +108,10 @@ func queueHandler(queueNum uint16) {
 			analyzer.AnalyzeUDP(id, *a.Payload)
 		}
 
+		if queueNum == uint16(1) {
+			analyzer.AnalyzeICMP(id, *a.Payload)
+		}
+
 		nf.SetVerdict(id, nfqueue.NfAccept)
 		return 0
 	}

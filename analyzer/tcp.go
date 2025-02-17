@@ -50,6 +50,10 @@ func AnalyzeTCP(packetID uint32, payload []byte) {
 			RST:                  payload[tcpStart+13]&0x04 != 0,
 		}
 
+		// Extract payload (application data)
+		tcpHeaderLength := (payload[tcpStart+12] >> 4) * 4 // Get TCP header length (in bytes)
+		payloadData := payload[tcpStart+tcpHeaderLength:]  // Data starts after the TCP header
+		packetAnalysis.TCP.Payload = payloadData
 	} else if version == 6 { // IPv6 Packet
 		// Extract IPv6 header fields
 		packetAnalysis.IPv6 = &model.IPv6Info{
@@ -74,6 +78,9 @@ func AnalyzeTCP(packetID uint32, payload []byte) {
 			RST:                  payload[tcpStart+13]&0x04 != 0,
 		}
 
+		tcpHeaderLength := (payload[tcpStart+12] >> 4) * 4      // Get TCP header length (in bytes)
+		payloadData := payload[byte(tcpStart)+tcpHeaderLength:] // Data starts after the TCP header
+		packetAnalysis.TCP.Payload = payloadData
 	} else {
 		// Unsupported IP version
 		fmt.Printf("[WARNING] Unsupported IP version %d in packet ID %d\n", version, packetID)
