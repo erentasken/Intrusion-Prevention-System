@@ -3,6 +3,7 @@ FROM golang:1.23
 # Install dependencies including OpenSSH server
 RUN apt-get update && apt-get install -y \
     iptables \
+    iputils-ping \
     openssh-server
 
 # Set root password, allow root login and enable password authentication

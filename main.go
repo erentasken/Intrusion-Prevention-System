@@ -3,8 +3,9 @@ package main
 import (
 	"context"
 	"fmt"
-	"main/analyzer"
+	"main/config"
 	"main/iptables"
+	"main/service"
 	"os"
 	"os/signal"
 	"strconv"
@@ -18,11 +19,6 @@ import (
 
 func main() {
 
-	if err := iptables.PrepareNFQueues(); err != nil {
-		fmt.Println(err)
-		return
-	}
-
 	// Print startup message
 	fmt.Println("Starting IPS System...")
 
@@ -33,13 +29,25 @@ func main() {
 		os.Exit(1)
 	}
 
+	redisOrigin := config.InitializeRedis()
+	redisWrapper := config.NewRedisWrapper(*redisOrigin)
+
+	if err := iptables.PrepareNFQueues(); err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	tcpService := service.NewTCP(&redisWrapper)
+	udpService := service.NewUDP(&redisWrapper)
+
 	// // Load NFQUEUE numbers from environment variables
 	queueNames := []string{
 		"ICMP_QUEUE",
 		"TCP_QUEUE",
 		"UDP_QUEUE",
-		"OUTPUT_TCP_QUEUE",
 	}
+
+	// icmpService := service.NewICMP(&redisWrapper)
 
 	for _, name := range queueNames {
 		queueNum, err := strconv.Atoi(os.Getenv(name))
@@ -47,13 +55,13 @@ func main() {
 			fmt.Printf("Invalid NFQUEUE number for %s: %v\n", name, err)
 			os.Exit(1)
 		}
-		go queueHandler(uint16(queueNum))
+		go queueHandler(uint16(queueNum), tcpService, udpService)
 	}
 
 	select {}
 }
 
-func queueHandler(queueNum uint16) {
+func queueHandler(queueNum uint16, tcpService *service.TCP, udpService *service.UDP) {
 	config := nfqueue.Config{
 		NfQueue:      queueNum,
 		MaxPacketLen: 0xFFFF,
@@ -101,15 +109,11 @@ func queueHandler(queueNum uint16) {
 		}
 
 		if queueNum == uint16(tcpQueue) {
-			analyzer.AnalyzeTCP(id, *a.Payload)
+			tcpService.AnalyzeTCP(*a.Payload)
 		}
 
 		if queueNum == uint16(udpQueue) {
-			analyzer.AnalyzeUDP(id, *a.Payload)
-		}
-
-		if queueNum == uint16(1) {
-			analyzer.AnalyzeICMP(id, *a.Payload)
+			udpService.AnalyzeUDP(*a.Payload)
 		}
 
 		nf.SetVerdict(id, nfqueue.NfAccept)

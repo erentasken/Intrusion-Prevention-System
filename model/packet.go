@@ -55,24 +55,21 @@ type ICMPInfo struct {
 
 // Define a struct to represent the analysis of an ICMP packet
 type PacketAnalysisICMP struct {
-	PacketID uint32
-	IPv4     *IPv4Info
-	IPv6     *IPv6Info
-	ICMP     *ICMPInfo
+	IPv4 *IPv4Info
+	IPv6 *IPv6Info
+	ICMP *ICMPInfo
 }
 
 // Define a struct to represent the analysis of a TCP packet
 type PacketAnalysisTCP struct {
-	PacketID uint32
-	IPv4     *IPv4Info
-	IPv6     *IPv6Info
-	TCP      *TCPInfo
+	IPv4 *IPv4Info
+	IPv6 *IPv6Info
+	TCP  *TCPInfo
 }
 
 // Define a struct to represent the analysis of a UDP packet
 type PacketAnalysisUDP struct {
-	PacketID uint32
-	IPv4     *IPv4Info
-	IPv6     *IPv6Info
-	UDP      *UDPInfo
+	IPv4 *IPv4Info
+	IPv6 *IPv6Info
+	UDP  *UDPInfo
 }
