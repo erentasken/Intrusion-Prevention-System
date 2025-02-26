@@ -104,7 +104,7 @@ func (t *TCP) analyzeTCPHeader(payload []byte, packetAnalysis *model.PacketAnaly
 }
 
 func WriteToCSV(filename string, featureAnalyzers map[string]*FeatureAnalyzer) error {
-	file, err := os.OpenFile(filename, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	file, err := os.Create(filename)
 	if err != nil {
 		return err
 	}
