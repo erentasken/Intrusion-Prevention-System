@@ -58,6 +58,10 @@ func main() {
 		go queueHandler(uint16(queueNum), tcpService)
 	}
 
+	time.Sleep(5 * time.Second)
+
+	service.WriteToCSV("test.csv", tcpService.FeatureAnalyzer)
+
 	select {}
 }
 
