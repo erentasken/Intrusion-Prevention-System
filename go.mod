@@ -14,7 +14,6 @@ require (
 )
 
 require (
-	github.com/go-redis/redis/v8 v8.11.5
 	github.com/google/go-cmp v0.5.9 // indirect
 	github.com/joho/godotenv v1.5.1
 	github.com/josharian/native v1.1.0 // indirect
