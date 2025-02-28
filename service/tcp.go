@@ -149,6 +149,12 @@ func WriteToCSV(filename string, featureAnalyzers map[string]*FeatureAnalyzer) e
 
 			"bwd_iat_total", "bwd_iat_mean",
 			"bwd_iat_std", "bwd_iat_max", "bwd_iat_min",
+
+			"fwd_avg_bytes_bulk", "fwd_avg_packets_bulk",
+			"bwd_avg_bytes_bulk", "bwd_avg_packets_bulk",
+
+			"subflow_fwd_packets", "subflow_fwd_bytes",
+			"subflow_bwd_packets", "subflow_bwd_bytes",
 		}
 
 		writer.Write(header)
@@ -158,7 +164,7 @@ func WriteToCSV(filename string, featureAnalyzers map[string]*FeatureAnalyzer) e
 		fmt.Println(" key: ", k)
 		data := []string{
 			strconv.FormatUint(features.features.DestinationPort, 10),
-			strconv.FormatUint(features.features.FlowDuration, 10),
+			strconv.FormatFloat(features.features.FlowDuration, 'f', 6, 64),
 
 			strconv.FormatUint(features.features.TotalFwdPackets, 10),
 			strconv.FormatUint(features.features.TotalBwdPackets, 10),
@@ -207,20 +213,30 @@ func WriteToCSV(filename string, featureAnalyzers map[string]*FeatureAnalyzer) e
 
 			strconv.FormatFloat(features.features.IATFeatures.FlowIATMean, 'f', 6, 64),
 			strconv.FormatFloat(features.features.IATFeatures.FlowIATStd, 'f', 6, 64),
-			strconv.FormatUint(features.features.IATFeatures.FlowIATMax, 10),
-			strconv.FormatUint(features.features.IATFeatures.FlowIATMin, 10),
+			strconv.FormatFloat(features.features.IATFeatures.FlowIATMax, 'f', 6, 64),
+			strconv.FormatFloat(features.features.IATFeatures.FlowIATMin, 'f', 6, 64),
 
 			strconv.FormatFloat(features.features.IATFeatures.ForwardIATFeatures.FwdIATTotal, 'f', 6, 64),
 			strconv.FormatFloat(features.features.IATFeatures.ForwardIATFeatures.FwdIATMean, 'f', 6, 64),
 			strconv.FormatFloat(features.features.IATFeatures.ForwardIATFeatures.FwdIATStd, 'f', 6, 64),
-			strconv.FormatUint(features.features.IATFeatures.ForwardIATFeatures.FwdIATMax, 10),
-			strconv.FormatUint(features.features.IATFeatures.ForwardIATFeatures.FwdIATMin, 10),
+			strconv.FormatFloat(features.features.IATFeatures.ForwardIATFeatures.FwdIATMax, 'f', 6, 64),
+			strconv.FormatFloat(features.features.IATFeatures.ForwardIATFeatures.FwdIATMin, 'f', 6, 64),
 
 			strconv.FormatFloat(features.features.IATFeatures.BackwardIATFeatures.BwdIATTotal, 'f', 6, 64),
 			strconv.FormatFloat(features.features.IATFeatures.BackwardIATFeatures.BwdIATMean, 'f', 6, 64),
 			strconv.FormatFloat(features.features.IATFeatures.BackwardIATFeatures.BwdIATStd, 'f', 6, 64),
-			strconv.FormatUint(features.features.IATFeatures.BackwardIATFeatures.BwdIATMax, 10),
-			strconv.FormatUint(features.features.IATFeatures.BackwardIATFeatures.BwdIATMin, 10),
+			strconv.FormatFloat(features.features.IATFeatures.BackwardIATFeatures.BwdIATMax, 'f', 6, 64),
+			strconv.FormatFloat(features.features.IATFeatures.BackwardIATFeatures.BwdIATMin, 'f', 6, 64),
+
+			strconv.FormatFloat(features.features.BulkTransferFeatures.FwdAvgBytesBulk, 'f', 6, 64),
+			strconv.FormatFloat(features.features.BulkTransferFeatures.FwdAvgPacketsBulk, 'f', 6, 64),
+			strconv.FormatFloat(features.features.BulkTransferFeatures.BwdAvgBytesBulk, 'f', 6, 64),
+			strconv.FormatFloat(features.features.BulkTransferFeatures.BwdAvgPacketsBulk, 'f', 6, 64),
+
+			strconv.FormatUint(features.features.SubflowFeatures.SubflowFwdPackets, 10),
+			strconv.FormatUint(features.features.SubflowFeatures.SubflowFwdBytes, 10),
+			strconv.FormatUint(features.features.SubflowFeatures.SubflowBwdPackets, 10),
+			strconv.FormatUint(features.features.SubflowFeatures.SubflowBwdBytes, 10),
 		}
 		writer.Write(data)
 	}

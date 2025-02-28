@@ -2,8 +2,8 @@ package model
 
 type FlowFeatures struct {
 	// Basic Flow Information
-	DestinationPort uint64 `json:"destination_port"` // Destination port of the connection
-	FlowDuration    uint64 `json:"flow_duration"`    // Total duration of the flow in microseconds
+	DestinationPort uint64  `json:"destination_port"` // Destination port of the connection
+	FlowDuration    float64 `json:"flow_duration"`    // Total duration of the flow in microseconds
 
 	// Packet Count Features ---------------  DONE
 	TotalFwdPackets       uint64 `json:"total_fwd_packets"`        // Number of packets sent in the forward direction
@@ -41,15 +41,13 @@ type FlowFeatures struct {
 	ActiveMean float64 `json:"active_mean"` // Mean active time
 	IdleMean   float64 `json:"idle_mean"`   // Mean idle time
 
-	// -----------------  DONE
 	FlagFeatures *FlagFeatures
 
-	// -----------------  DONE
 	IATFeatures *IATFeatures
 
-	// BulkTransferFeatures *BulkTransferFeatures
+	BulkTransferFeatures *BulkTransferFeatures
 
-	// SubflowFeatures *SubflowFeatures
+	SubflowFeatures *SubflowFeatures
 }
 
 type BulkTransferFeatures struct {
@@ -73,8 +71,8 @@ type IATFeatures struct {
 	// Inter-Arrival Time (IAT) Features
 	FlowIATMean float64 `json:"flow_iat_mean"` // Mean Inter-Arrival Time between packets in the flow
 	FlowIATStd  float64 `json:"flow_iat_std"`  // Standard deviation of packet Inter-Arrival Time
-	FlowIATMax  uint64  `json:"flow_iat_max"`  // Maximum Inter-Arrival Time in the flow
-	FlowIATMin  uint64  `json:"flow_iat_min"`  // Minimum Inter-Arrival Time in the flow
+	FlowIATMax  float64 `json:"flow_iat_max"`  // Maximum Inter-Arrival Time in the flow
+	FlowIATMin  float64 `json:"flow_iat_min"`  // Minimum Inter-Arrival Time in the flow
 
 	ForwardIATFeatures  *ForwardIATFeatures
 	BackwardIATFeatures *BackwardIATFeatures
@@ -85,8 +83,8 @@ type ForwardIATFeatures struct {
 	FwdIATTotal float64 `json:"fwd_iat_total"` // Total Inter-Arrival Time for forward packets
 	FwdIATMean  float64 `json:"fwd_iat_mean"`  // Mean Inter-Arrival Time of forward packets
 	FwdIATStd   float64 `json:"fwd_iat_std"`   // Standard deviation of forward packet Inter-Arrival Time
-	FwdIATMax   uint64  `json:"fwd_iat_max"`   // Maximum Inter-Arrival Time of forward packets
-	FwdIATMin   uint64  `json:"fwd_iat_min"`   // Minimum Inter-Arrival Time of forward packets
+	FwdIATMax   float64 `json:"fwd_iat_max"`   // Maximum Inter-Arrival Time of forward packets
+	FwdIATMin   float64 `json:"fwd_iat_min"`   // Minimum Inter-Arrival Time of forward packets
 }
 
 type BackwardIATFeatures struct {
@@ -94,8 +92,8 @@ type BackwardIATFeatures struct {
 	BwdIATTotal float64 `json:"bwd_iat_total"` // Total Inter-Arrival Time for backward packets
 	BwdIATMean  float64 `json:"bwd_iat_mean"`  // Mean Inter-Arrival Time of backward packets
 	BwdIATStd   float64 `json:"bwd_iat_std"`   // Standard deviation of backward packet Inter-Arrival Time
-	BwdIATMax   uint64  `json:"bwd_iat_max"`   // Maximum Inter-Arrival Time of backward packets
-	BwdIATMin   uint64  `json:"bwd_iat_min"`   // Minimum Inter-Arrival Time of backward packets
+	BwdIATMax   float64 `json:"bwd_iat_max"`   // Maximum Inter-Arrival Time of backward packets
+	BwdIATMin   float64 `json:"bwd_iat_min"`   // Minimum Inter-Arrival Time of backward packets
 }
 
 type FlagFeatures struct {
