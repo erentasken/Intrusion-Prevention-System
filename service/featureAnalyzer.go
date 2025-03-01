@@ -8,6 +8,8 @@ import (
 	"time"
 )
 
+// If the time expires for flow analysis, then set the flow as inactive. After writing it in the database, delete it from the map.
+
 type FeatureAnalyzer struct {
 	features       *model.FlowFeatures
 	startTime      time.Time
@@ -29,126 +31,137 @@ type FeatureAnalyzer struct {
 	lastBackwardPacketTime     time.Time
 	timeBetweenForwardPackets  []float64
 	timeBetweenBackwardPackets []float64
-	mu                         sync.Mutex
-}
 
-var instance *FeatureAnalyzer
+	mu           sync.Mutex
+	subflowMutex sync.Mutex
+
+	isSubflow bool
+
+	forwardKey    string
+	timeoutSignal chan string
+}
 
 const subflowTimeout = 3 * time.Second // Define subflow timeout (adjust as needed)
 
-var isSubflow = false
-
 func (f *FeatureAnalyzer) analyzerTimeoutChecks() {
 	for {
-		f.mu.Lock()
-		if time.Since(f.lastPacketTime) > subflowTimeout {
-			isSubflow = true
+		f.subflowMutex.Lock()
+		if time.Since(f.lastPacketTime) < subflowTimeout {
+			f.isSubflow = true
 		} else {
-			isSubflow = false
+			f.isSubflow = false
 		}
-		f.mu.Unlock()
+		f.subflowMutex.Unlock()
+
+		// check the timeout for the flow analysis
+		if time.Since(f.lastPacketTime) > 10*time.Second {
+			// set the active as false
+			// write to database
+			// remove from map
+
+			f.timeoutSignal <- f.forwardKey
+
+			break
+		}
 	}
 }
 
-func GetFeatureAnalyzerInstance(packetAnalysis *model.PacketAnalysisTCP) *FeatureAnalyzer {
-	if instance == nil {
-		tcpHeaderLen := packetAnalysis.TCP.HeaderLength
+func GetFeatureAnalyzerInstance(packetAnalysis *model.PacketAnalysisTCP, forwardKey string, timeoutSignal chan string) *FeatureAnalyzer {
+	tcpHeaderLen := packetAnalysis.TCP.HeaderLength
 
-		packetLength := uint64(len(packetAnalysis.TCP.Payload))
+	packetLength := uint64(len(packetAnalysis.TCP.Payload))
 
-		featureAnalyzer := &FeatureAnalyzer{
-			startTime:      time.Now(),
-			lastPacketTime: time.Now(),
-			packetSizes:    []uint64{packetLength},
-			idleTimesSum:   0,
-			features: &model.FlowFeatures{
-				DestinationPort: packetAnalysis.TCP.DestinationPort,
-				FlowDuration:    0,
+	featureAnalyzer := &FeatureAnalyzer{
+		startTime:      time.Now(),
+		lastPacketTime: time.Now(),
+		packetSizes:    []uint64{packetLength},
+		idleTimesSum:   0,
+		isSubflow:      false,
+		forwardKey:     forwardKey,
+		timeoutSignal:  timeoutSignal,
+		features: &model.FlowFeatures{
+			DestinationPort: packetAnalysis.TCP.DestinationPort,
+			FlowDuration:    0,
 
-				TotalFwdPackets: 1,
-				TotalBwdPackets: 0,
+			TotalFwdPackets: 1,
+			TotalBwdPackets: 0,
 
-				TotalLengthFwdPackets: packetLength,
-				TotalLengthBwdPackets: 0,
-				FwdPacketLengthMax:    packetLength,
-				FwdPacketLengthMin:    packetLength,
-				FwdPacketLengthMean:   float64(packetLength),
-				FwdPacketLengthStd:    0,
-				BwdPacketLengthMax:    0,
-				BwdPacketLengthMin:    0,
-				BwdPacketLengthMean:   0,
-				BwdPacketLengthStd:    0,
+			TotalLengthFwdPackets: packetLength,
+			TotalLengthBwdPackets: 0,
+			FwdPacketLengthMax:    packetLength,
+			FwdPacketLengthMin:    packetLength,
+			FwdPacketLengthMean:   float64(packetLength),
+			FwdPacketLengthStd:    0,
+			BwdPacketLengthMax:    0,
+			BwdPacketLengthMin:    0,
+			BwdPacketLengthMean:   0,
+			BwdPacketLengthStd:    0,
 
-				FlowBytesPerSec:   0,
-				FlowPacketsPerSec: 0,
+			FlowBytesPerSec:   0,
+			FlowPacketsPerSec: 0,
 
-				FwdHeaderLength:  tcpHeaderLen,
-				BwdHeaderLength:  0,
-				FwdPacketsPerSec: 0,
-				BwdPacketsPerSec: 0,
+			FwdHeaderLength:  tcpHeaderLen,
+			BwdHeaderLength:  0,
+			FwdPacketsPerSec: 0,
+			BwdPacketsPerSec: 0,
 
-				MinPacketLength:  packetLength,
-				MaxPacketLength:  packetLength,
-				PacketLengthMean: float64(packetLength),
-				PacketLengthStd:  0,
+			MinPacketLength:  packetLength,
+			MaxPacketLength:  packetLength,
+			PacketLengthMean: float64(packetLength),
+			PacketLengthStd:  0,
 
-				ActiveMean: 0,
-				IdleMean:   0,
+			ActiveMean: 0,
+			IdleMean:   0,
 
-				FlagFeatures: &model.FlagFeatures{
-					FinFlagCount: boolToInt(packetAnalysis.TCP.FIN),
-					SynFlagCount: boolToInt(packetAnalysis.TCP.SYN),
-					RstFlagCount: boolToInt(packetAnalysis.TCP.RST),
-					PshFlagCount: boolToInt(packetAnalysis.TCP.PSH),
-					AckFlagCount: boolToInt(packetAnalysis.TCP.ACK),
-					UrgFlagCount: boolToInt(packetAnalysis.TCP.URG),
-					CweFlagCount: boolToInt(packetAnalysis.TCP.CWR),
-					EceFlagCount: boolToInt(packetAnalysis.TCP.ECE),
+			FlagFeatures: &model.FlagFeatures{
+				FinFlagCount: boolToInt(packetAnalysis.TCP.FIN),
+				SynFlagCount: boolToInt(packetAnalysis.TCP.SYN),
+				RstFlagCount: boolToInt(packetAnalysis.TCP.RST),
+				PshFlagCount: boolToInt(packetAnalysis.TCP.PSH),
+				AckFlagCount: boolToInt(packetAnalysis.TCP.ACK),
+				UrgFlagCount: boolToInt(packetAnalysis.TCP.URG),
+				CweFlagCount: boolToInt(packetAnalysis.TCP.CWR),
+				EceFlagCount: boolToInt(packetAnalysis.TCP.ECE),
+			},
+
+			IATFeatures: &model.IATFeatures{
+				FlowIATMean: 0,
+				FlowIATStd:  0,
+				FlowIATMax:  0,
+				FlowIATMin:  0,
+				ForwardIATFeatures: &model.ForwardIATFeatures{
+					FwdIATTotal: 0,
+					FwdIATMean:  0,
+					FwdIATStd:   0,
+					FwdIATMax:   0,
+					FwdIATMin:   0,
 				},
-
-				IATFeatures: &model.IATFeatures{
-					FlowIATMean: 0,
-					FlowIATStd:  0,
-					FlowIATMax:  0,
-					FlowIATMin:  0,
-					ForwardIATFeatures: &model.ForwardIATFeatures{
-						FwdIATTotal: 0,
-						FwdIATMean:  0,
-						FwdIATStd:   0,
-						FwdIATMax:   0,
-						FwdIATMin:   0,
-					},
-					BackwardIATFeatures: &model.BackwardIATFeatures{
-						BwdIATMean: 0,
-						BwdIATStd:  0,
-						BwdIATMax:  0,
-						BwdIATMin:  0,
-					},
-				},
-				BulkTransferFeatures: &model.BulkTransferFeatures{
-					FwdAvgBytesBulk:   0,
-					FwdAvgPacketsBulk: 0,
-					BwdAvgBytesBulk:   0,
-					BwdAvgPacketsBulk: 0,
-				},
-				SubflowFeatures: &model.SubflowFeatures{
-					SubflowFwdPackets: 1,
-					SubflowFwdBytes:   packetLength,
-					SubflowBwdPackets: 0,
-					SubflowBwdBytes:   0,
+				BackwardIATFeatures: &model.BackwardIATFeatures{
+					BwdIATMean: 0,
+					BwdIATStd:  0,
+					BwdIATMax:  0,
+					BwdIATMin:  0,
 				},
 			},
-		}
-
-		instance = featureAnalyzer
-
-		go instance.analyzerTimeoutChecks()
-
-		return instance
+			BulkTransferFeatures: &model.BulkTransferFeatures{
+				FwdAvgBytesBulk:   0,
+				FwdAvgPacketsBulk: 0,
+				BwdAvgBytesBulk:   0,
+				BwdAvgPacketsBulk: 0,
+			},
+			SubflowFeatures: &model.SubflowFeatures{
+				SubflowFwdPackets: 1,
+				SubflowFwdBytes:   packetLength,
+				SubflowBwdPackets: 0,
+				SubflowBwdBytes:   0,
+			},
+		},
 	}
-	return instance
-}
 
+	go featureAnalyzer.analyzerTimeoutChecks()
+
+	return featureAnalyzer
+}
 func boolToInt(b bool) uint64 {
 	if b {
 		return 1
@@ -210,12 +223,6 @@ func (f *FeatureAnalyzer) updateFeatures(packetAnalysis *model.PacketAnalysisTCP
 
 		f.features.FwdPacketLengthStd = calculateStdDeviation(f.forwardPacketSizes, f.features.FwdPacketLengthMean)
 
-		// Subflow features
-		if isSubflow {
-			f.features.SubflowFeatures.SubflowFwdPackets++
-			f.features.SubflowFeatures.SubflowFwdBytes += packetSize
-		}
-
 		//Compute IAT features
 		timeSinceForwardPacket := float64(time.Since(f.lastForwardPacketTime).Milliseconds() / 1000)
 		if timeSinceForwardPacket > 0 {
@@ -235,7 +242,18 @@ func (f *FeatureAnalyzer) updateFeatures(packetAnalysis *model.PacketAnalysisTCP
 		if packetSize > bulkThreshold {
 			f.totalBulkByteFwd += packetSize
 			f.totalBulkPacketsFwd++
+
+			f.features.BulkTransferFeatures.FwdAvgBytesBulk = float64(f.totalBulkByteFwd / f.totalBulkPacketsFwd)
+			f.features.BulkTransferFeatures.FwdAvgPacketsBulk = float64(f.totalBulkPacketsFwd)
 		}
+
+		f.subflowMutex.Lock()
+		// Subflow features
+		if f.isSubflow {
+			f.features.SubflowFeatures.SubflowFwdPackets++
+			f.features.SubflowFeatures.SubflowFwdBytes += packetSize
+		}
+		f.subflowMutex.Unlock()
 	case "backward":
 		f.features.TotalBwdPackets++
 		f.features.TotalLengthBwdPackets += uint64(packetSize)
@@ -260,12 +278,6 @@ func (f *FeatureAnalyzer) updateFeatures(packetAnalysis *model.PacketAnalysisTCP
 
 		f.features.BwdPacketLengthStd = calculateStdDeviation(f.backwardPacketSizes, f.features.BwdPacketLengthMean)
 
-		// Subflow features
-		if isSubflow {
-			f.features.SubflowFeatures.SubflowBwdPackets++
-			f.features.SubflowFeatures.SubflowBwdBytes += packetSize
-		}
-
 		//Compute IAT features
 		timeSinceBackwardPacket := float64(time.Since(f.lastBackwardPacketTime).Milliseconds() / 1000)
 		if timeSinceBackwardPacket > 0 {
@@ -284,18 +296,17 @@ func (f *FeatureAnalyzer) updateFeatures(packetAnalysis *model.PacketAnalysisTCP
 		if packetSize > bulkThreshold {
 			f.totalBulkByteBwd += packetSize
 			f.totalBulkPacketsBwd++
+			f.features.BulkTransferFeatures.BwdAvgBytesBulk = float64(f.totalBulkByteBwd / f.totalBulkPacketsBwd)
+			f.features.BulkTransferFeatures.BwdAvgPacketsBulk = float64(f.totalBulkPacketsBwd)
 		}
-	}
 
-	// Update bulk transfer features
-	if f.totalBulkPacketsFwd > 0 {
-		f.features.BulkTransferFeatures.FwdAvgBytesBulk = float64(f.totalBulkByteFwd / f.totalBulkPacketsFwd)
-		f.features.BulkTransferFeatures.FwdAvgPacketsBulk = float64(f.totalBulkPacketsFwd)
-	}
-
-	if f.totalBulkPacketsBwd > 0 {
-		f.features.BulkTransferFeatures.BwdAvgBytesBulk = float64(f.totalBulkByteBwd / f.totalBulkPacketsBwd)
-		f.features.BulkTransferFeatures.BwdAvgPacketsBulk = float64(f.totalBulkPacketsBwd)
+		f.subflowMutex.Lock()
+		// Subflow features
+		if f.isSubflow {
+			f.features.SubflowFeatures.SubflowBwdPackets++
+			f.features.SubflowFeatures.SubflowBwdBytes += packetSize
+		}
+		f.subflowMutex.Unlock()
 	}
 
 	// Update TCP flag counts

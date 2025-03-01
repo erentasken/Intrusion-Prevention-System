@@ -8,16 +8,24 @@ import (
 	"net"
 	"os"
 	"strconv"
+	"time"
 )
 
 type TCP struct {
 	FeatureAnalyzer map[string]*FeatureAnalyzer
+	timeoutSignal   chan string
 }
 
 func NewTCP() *TCP {
-	return &TCP{
+
+	tcp := &TCP{
 		FeatureAnalyzer: make(map[string]*FeatureAnalyzer),
-	} // TODO
+		timeoutSignal:   make(chan string),
+	}
+
+	go tcp.FlowMapTimeout()
+
+	return tcp
 }
 
 func (t *TCP) AnalyzeTCP(payload []byte) {
@@ -47,9 +55,28 @@ func (t *TCP) AnalyzeTCP(payload []byte) {
 	} else if featureAnalyzer, ok := t.FeatureAnalyzer[backwardKey]; ok {
 		featureAnalyzer.updateFeatures(&packetAnalysis, "backward")
 	} else {
-		t.FeatureAnalyzer[forwardKey] = GetFeatureAnalyzerInstance(&packetAnalysis)
+		t.FeatureAnalyzer[forwardKey] = GetFeatureAnalyzerInstance(&packetAnalysis, forwardKey, t.timeoutSignal)
 	}
+}
 
+func (t *TCP) FlowMapTimeout() {
+	var key string
+	for {
+		select {
+		case key = <-t.timeoutSignal:
+			fmt.Println("Timeout signal received for key: ", key)
+
+			// Write the features to a CSV file
+			err := WriteToCSV("tcp_features.csv", t.FeatureAnalyzer[key])
+			if err != nil {
+				fmt.Println("Error writing to CSV file: ", err)
+			}
+
+			delete(t.FeatureAnalyzer, key)
+		case <-time.After(30 * time.Second): // Prevent blocking forever
+			fmt.Println("No timeout signals received, continuing...")
+		}
+	}
 }
 
 func (t *TCP) analyzeIPv4(payload []byte, packetAnalysis *model.PacketAnalysisTCP) {
@@ -103,8 +130,11 @@ func (t *TCP) analyzeTCPHeader(payload []byte, packetAnalysis *model.PacketAnaly
 
 }
 
-func WriteToCSV(filename string, featureAnalyzers map[string]*FeatureAnalyzer) error {
-	file, err := os.Create(filename)
+func WriteToCSV(filename string, features *FeatureAnalyzer) error {
+
+	// append to file do not rewrite
+
+	file, err := os.OpenFile(filename, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
 		return err
 	}
@@ -160,86 +190,83 @@ func WriteToCSV(filename string, featureAnalyzers map[string]*FeatureAnalyzer) e
 		writer.Write(header)
 	}
 
-	for k, features := range featureAnalyzers {
-		fmt.Println(" key: ", k)
-		data := []string{
-			strconv.FormatUint(features.features.DestinationPort, 10),
-			strconv.FormatFloat(features.features.FlowDuration, 'f', 6, 64),
+	data := []string{
+		strconv.FormatUint(features.features.DestinationPort, 10),
+		strconv.FormatFloat(features.features.FlowDuration, 'f', 6, 64),
 
-			strconv.FormatUint(features.features.TotalFwdPackets, 10),
-			strconv.FormatUint(features.features.TotalBwdPackets, 10),
-			strconv.FormatUint(features.features.TotalLengthFwdPackets, 10),
-			strconv.FormatUint(features.features.TotalLengthBwdPackets, 10),
+		strconv.FormatUint(features.features.TotalFwdPackets, 10),
+		strconv.FormatUint(features.features.TotalBwdPackets, 10),
+		strconv.FormatUint(features.features.TotalLengthFwdPackets, 10),
+		strconv.FormatUint(features.features.TotalLengthBwdPackets, 10),
 
-			strconv.FormatUint(features.features.FwdPacketLengthMax, 10),
-			strconv.FormatUint(features.features.FwdPacketLengthMin, 10),
-			strconv.FormatFloat(features.features.FwdPacketLengthMean, 'f', 6, 64),
-			strconv.FormatFloat(features.features.FwdPacketLengthStd, 'f', 6, 64),
+		strconv.FormatUint(features.features.FwdPacketLengthMax, 10),
+		strconv.FormatUint(features.features.FwdPacketLengthMin, 10),
+		strconv.FormatFloat(features.features.FwdPacketLengthMean, 'f', 6, 64),
+		strconv.FormatFloat(features.features.FwdPacketLengthStd, 'f', 6, 64),
 
-			strconv.FormatUint(features.features.BwdPacketLengthMax, 10),
-			strconv.FormatUint(features.features.BwdPacketLengthMin, 10),
-			strconv.FormatFloat(features.features.BwdPacketLengthMean, 'f', 6, 64),
-			strconv.FormatFloat(features.features.BwdPacketLengthStd, 'f', 6, 64),
+		strconv.FormatUint(features.features.BwdPacketLengthMax, 10),
+		strconv.FormatUint(features.features.BwdPacketLengthMin, 10),
+		strconv.FormatFloat(features.features.BwdPacketLengthMean, 'f', 6, 64),
+		strconv.FormatFloat(features.features.BwdPacketLengthStd, 'f', 6, 64),
 
-			strconv.FormatFloat(features.features.FlowBytesPerSec, 'f', 6, 64),
-			strconv.FormatFloat(features.features.FlowPacketsPerSec, 'f', 6, 64),
+		strconv.FormatFloat(features.features.FlowBytesPerSec, 'f', 6, 64),
+		strconv.FormatFloat(features.features.FlowPacketsPerSec, 'f', 6, 64),
 
-			strconv.FormatUint(features.features.FwdHeaderLength, 10),
-			strconv.FormatUint(features.features.BwdHeaderLength, 10),
-			strconv.FormatFloat(features.features.FwdPacketsPerSec, 'f', 6, 64),
-			strconv.FormatFloat(features.features.BwdPacketsPerSec, 'f', 6, 64),
+		strconv.FormatUint(features.features.FwdHeaderLength, 10),
+		strconv.FormatUint(features.features.BwdHeaderLength, 10),
+		strconv.FormatFloat(features.features.FwdPacketsPerSec, 'f', 6, 64),
+		strconv.FormatFloat(features.features.BwdPacketsPerSec, 'f', 6, 64),
 
-			strconv.FormatUint(features.features.MinPacketLength, 10),
-			strconv.FormatUint(features.features.MaxPacketLength, 10),
-			strconv.FormatFloat(features.features.PacketLengthMean, 'f', 6, 64),
-			strconv.FormatFloat(features.features.PacketLengthStd, 'f', 6, 64),
+		strconv.FormatUint(features.features.MinPacketLength, 10),
+		strconv.FormatUint(features.features.MaxPacketLength, 10),
+		strconv.FormatFloat(features.features.PacketLengthMean, 'f', 6, 64),
+		strconv.FormatFloat(features.features.PacketLengthStd, 'f', 6, 64),
 
-			strconv.FormatFloat(features.features.ActiveMean, 'f', 6, 64),
-			strconv.FormatFloat(features.features.IdleMean, 'f', 6, 64),
+		strconv.FormatFloat(features.features.ActiveMean, 'f', 6, 64),
+		strconv.FormatFloat(features.features.IdleMean, 'f', 6, 64),
 
-			strconv.FormatUint(features.features.FlagFeatures.FwdPSHFlags, 10),
-			strconv.FormatUint(features.features.FlagFeatures.BwdPSHFlags, 10),
-			strconv.FormatUint(features.features.FlagFeatures.FwdURGFlags, 10),
-			strconv.FormatUint(features.features.FlagFeatures.BwdURGFlags, 10),
+		strconv.FormatUint(features.features.FlagFeatures.FwdPSHFlags, 10),
+		strconv.FormatUint(features.features.FlagFeatures.BwdPSHFlags, 10),
+		strconv.FormatUint(features.features.FlagFeatures.FwdURGFlags, 10),
+		strconv.FormatUint(features.features.FlagFeatures.BwdURGFlags, 10),
 
-			strconv.FormatUint(features.features.FlagFeatures.FinFlagCount, 10),
-			strconv.FormatUint(features.features.FlagFeatures.SynFlagCount, 10),
-			strconv.FormatUint(features.features.FlagFeatures.RstFlagCount, 10),
-			strconv.FormatUint(features.features.FlagFeatures.PshFlagCount, 10),
-			strconv.FormatUint(features.features.FlagFeatures.AckFlagCount, 10),
-			strconv.FormatUint(features.features.FlagFeatures.UrgFlagCount, 10),
-			strconv.FormatUint(features.features.FlagFeatures.CweFlagCount, 10),
-			strconv.FormatUint(features.features.FlagFeatures.EceFlagCount, 10),
+		strconv.FormatUint(features.features.FlagFeatures.FinFlagCount, 10),
+		strconv.FormatUint(features.features.FlagFeatures.SynFlagCount, 10),
+		strconv.FormatUint(features.features.FlagFeatures.RstFlagCount, 10),
+		strconv.FormatUint(features.features.FlagFeatures.PshFlagCount, 10),
+		strconv.FormatUint(features.features.FlagFeatures.AckFlagCount, 10),
+		strconv.FormatUint(features.features.FlagFeatures.UrgFlagCount, 10),
+		strconv.FormatUint(features.features.FlagFeatures.CweFlagCount, 10),
+		strconv.FormatUint(features.features.FlagFeatures.EceFlagCount, 10),
 
-			strconv.FormatFloat(features.features.IATFeatures.FlowIATMean, 'f', 6, 64),
-			strconv.FormatFloat(features.features.IATFeatures.FlowIATStd, 'f', 6, 64),
-			strconv.FormatFloat(features.features.IATFeatures.FlowIATMax, 'f', 6, 64),
-			strconv.FormatFloat(features.features.IATFeatures.FlowIATMin, 'f', 6, 64),
+		strconv.FormatFloat(features.features.IATFeatures.FlowIATMean, 'f', 6, 64),
+		strconv.FormatFloat(features.features.IATFeatures.FlowIATStd, 'f', 6, 64),
+		strconv.FormatFloat(features.features.IATFeatures.FlowIATMax, 'f', 6, 64),
+		strconv.FormatFloat(features.features.IATFeatures.FlowIATMin, 'f', 6, 64),
 
-			strconv.FormatFloat(features.features.IATFeatures.ForwardIATFeatures.FwdIATTotal, 'f', 6, 64),
-			strconv.FormatFloat(features.features.IATFeatures.ForwardIATFeatures.FwdIATMean, 'f', 6, 64),
-			strconv.FormatFloat(features.features.IATFeatures.ForwardIATFeatures.FwdIATStd, 'f', 6, 64),
-			strconv.FormatFloat(features.features.IATFeatures.ForwardIATFeatures.FwdIATMax, 'f', 6, 64),
-			strconv.FormatFloat(features.features.IATFeatures.ForwardIATFeatures.FwdIATMin, 'f', 6, 64),
+		strconv.FormatFloat(features.features.IATFeatures.ForwardIATFeatures.FwdIATTotal, 'f', 6, 64),
+		strconv.FormatFloat(features.features.IATFeatures.ForwardIATFeatures.FwdIATMean, 'f', 6, 64),
+		strconv.FormatFloat(features.features.IATFeatures.ForwardIATFeatures.FwdIATStd, 'f', 6, 64),
+		strconv.FormatFloat(features.features.IATFeatures.ForwardIATFeatures.FwdIATMax, 'f', 6, 64),
+		strconv.FormatFloat(features.features.IATFeatures.ForwardIATFeatures.FwdIATMin, 'f', 6, 64),
 
-			strconv.FormatFloat(features.features.IATFeatures.BackwardIATFeatures.BwdIATTotal, 'f', 6, 64),
-			strconv.FormatFloat(features.features.IATFeatures.BackwardIATFeatures.BwdIATMean, 'f', 6, 64),
-			strconv.FormatFloat(features.features.IATFeatures.BackwardIATFeatures.BwdIATStd, 'f', 6, 64),
-			strconv.FormatFloat(features.features.IATFeatures.BackwardIATFeatures.BwdIATMax, 'f', 6, 64),
-			strconv.FormatFloat(features.features.IATFeatures.BackwardIATFeatures.BwdIATMin, 'f', 6, 64),
+		strconv.FormatFloat(features.features.IATFeatures.BackwardIATFeatures.BwdIATTotal, 'f', 6, 64),
+		strconv.FormatFloat(features.features.IATFeatures.BackwardIATFeatures.BwdIATMean, 'f', 6, 64),
+		strconv.FormatFloat(features.features.IATFeatures.BackwardIATFeatures.BwdIATStd, 'f', 6, 64),
+		strconv.FormatFloat(features.features.IATFeatures.BackwardIATFeatures.BwdIATMax, 'f', 6, 64),
+		strconv.FormatFloat(features.features.IATFeatures.BackwardIATFeatures.BwdIATMin, 'f', 6, 64),
 
-			strconv.FormatFloat(features.features.BulkTransferFeatures.FwdAvgBytesBulk, 'f', 6, 64),
-			strconv.FormatFloat(features.features.BulkTransferFeatures.FwdAvgPacketsBulk, 'f', 6, 64),
-			strconv.FormatFloat(features.features.BulkTransferFeatures.BwdAvgBytesBulk, 'f', 6, 64),
-			strconv.FormatFloat(features.features.BulkTransferFeatures.BwdAvgPacketsBulk, 'f', 6, 64),
+		strconv.FormatFloat(features.features.BulkTransferFeatures.FwdAvgBytesBulk, 'f', 6, 64),
+		strconv.FormatFloat(features.features.BulkTransferFeatures.FwdAvgPacketsBulk, 'f', 6, 64),
+		strconv.FormatFloat(features.features.BulkTransferFeatures.BwdAvgBytesBulk, 'f', 6, 64),
+		strconv.FormatFloat(features.features.BulkTransferFeatures.BwdAvgPacketsBulk, 'f', 6, 64),
 
-			strconv.FormatUint(features.features.SubflowFeatures.SubflowFwdPackets, 10),
-			strconv.FormatUint(features.features.SubflowFeatures.SubflowFwdBytes, 10),
-			strconv.FormatUint(features.features.SubflowFeatures.SubflowBwdPackets, 10),
-			strconv.FormatUint(features.features.SubflowFeatures.SubflowBwdBytes, 10),
-		}
-		writer.Write(data)
+		strconv.FormatUint(features.features.SubflowFeatures.SubflowFwdPackets, 10),
+		strconv.FormatUint(features.features.SubflowFeatures.SubflowFwdBytes, 10),
+		strconv.FormatUint(features.features.SubflowFeatures.SubflowBwdPackets, 10),
+		strconv.FormatUint(features.features.SubflowFeatures.SubflowBwdBytes, 10),
 	}
+	writer.Write(data)
 
 	return nil
 }

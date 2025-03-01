@@ -13,8 +13,32 @@ services:
       - TARGET_IP=172.30.0.2
     depends_on:
       - golang-ips
-    volumes:
-      - ./attacker/scripts:/attack-scripts
+    
+  attacker1:
+    build: ./attacker
+    container_name: attacker-container1
+    networks:
+      test-network:
+        ipv4_address: 172.30.0.8
+    privileged: true
+    tty: true
+    environment:
+      - TARGET_IP=172.30.0.2
+    depends_on:
+      - golang-ips
+
+  attacker2:
+    build: ./attacker
+    container_name: attacker-container2
+    networks:
+      test-network:
+        ipv4_address: 172.30.0.9
+    privileged: true
+    tty: true
+    environment:
+      - TARGET_IP=172.30.0.2
+    depends_on:
+      - golang-ips
 
   golang-ips:
     build: .

@@ -28,9 +28,6 @@ func main() {
 		os.Exit(1)
 	}
 
-	// redisOrigin := config.InitializeRedis()
-	// redisWrapper := config.NewRedisWrapper(*redisOrigin)
-
 	if err := iptables.PrepareNFQueues(); err != nil {
 		fmt.Println(err)
 		return
@@ -56,11 +53,6 @@ func main() {
 			os.Exit(1)
 		}
 		go queueHandler(uint16(queueNum), tcpService)
-	}
-
-	for {
-		time.Sleep(5 * time.Second)
-		service.WriteToCSV("test.csv", tcpService.FeatureAnalyzer)
 	}
 
 	select {}
