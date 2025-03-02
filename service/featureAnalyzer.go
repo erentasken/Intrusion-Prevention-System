@@ -8,7 +8,9 @@ import (
 	"time"
 )
 
-// If the time expires for flow analysis, then set the flow as inactive. After writing it in the database, delete it from the map.
+// Check the correctness of IAT features, and check the correctness.
+// Check for the idle mean and active mean.
+// Check the found databases, compare the results with the computed datas.
 
 type FeatureAnalyzer struct {
 	features       *model.FlowFeatures
@@ -79,6 +81,7 @@ func GetFeatureAnalyzerInstance(packetAnalysis *model.PacketAnalysisTCP, forward
 		isSubflow:      false,
 		forwardKey:     forwardKey,
 		timeoutSignal:  timeoutSignal,
+
 		features: &model.FlowFeatures{
 			DestinationPort: packetAnalysis.TCP.DestinationPort,
 			FlowDuration:    0,
@@ -225,18 +228,14 @@ func (f *FeatureAnalyzer) updateFeatures(packetAnalysis *model.PacketAnalysisTCP
 
 		//Compute IAT features
 		timeSinceForwardPacket := float64(time.Since(f.lastForwardPacketTime).Milliseconds() / 1000)
-		if timeSinceForwardPacket > 0 {
+		if timeSinceForwardPacket > 0 && f.features.TotalFwdPackets > 2 {
 			f.timeBetweenForwardPackets = append(f.timeBetweenForwardPackets, timeSinceForwardPacket)
-		}
-		f.lastForwardPacketTime = time.Now()
-
-		if len(f.timeBetweenForwardPackets) > 1 {
-			f.features.IATFeatures.ForwardIATFeatures.FwdIATTotal += float64(f.timeBetweenForwardPackets[len(f.timeBetweenForwardPackets)-1])
-			f.features.IATFeatures.ForwardIATFeatures.FwdIATMean = float64(f.features.IATFeatures.ForwardIATFeatures.FwdIATTotal / float64(len(f.timeBetweenForwardPackets)))
+			f.features.IATFeatures.ForwardIATFeatures.FwdIATMean = float64(f.features.IATFeatures.ForwardIATFeatures.FwdIATTotal) / float64(len(f.timeBetweenForwardPackets))
 			f.features.IATFeatures.ForwardIATFeatures.FwdIATStd = calculateStdDeviationFloat(f.timeBetweenForwardPackets, f.features.IATFeatures.ForwardIATFeatures.FwdIATMean)
 			f.features.IATFeatures.ForwardIATFeatures.FwdIATMax = max(f.features.IATFeatures.ForwardIATFeatures.FwdIATMax, f.timeBetweenForwardPackets[len(f.timeBetweenForwardPackets)-1])
 			f.features.IATFeatures.ForwardIATFeatures.FwdIATMin = minNonZeroFloat(f.features.IATFeatures.ForwardIATFeatures.FwdIATMin, f.timeBetweenForwardPackets[len(f.timeBetweenForwardPackets)-1])
 		}
+		f.lastForwardPacketTime = time.Now()
 
 		//Bulk transfer features
 		if packetSize > bulkThreshold {
@@ -280,17 +279,14 @@ func (f *FeatureAnalyzer) updateFeatures(packetAnalysis *model.PacketAnalysisTCP
 
 		//Compute IAT features
 		timeSinceBackwardPacket := float64(time.Since(f.lastBackwardPacketTime).Milliseconds() / 1000)
-		if timeSinceBackwardPacket > 0 {
+		if timeSinceBackwardPacket > 0 && f.features.TotalBwdPackets > 1 {
 			f.timeBetweenBackwardPackets = append(f.timeBetweenBackwardPackets, timeSinceBackwardPacket)
-		}
-		f.lastBackwardPacketTime = time.Now()
-
-		if len(f.timeBetweenBackwardPackets) > 1 {
 			f.features.IATFeatures.BackwardIATFeatures.BwdIATMean = float64(f.features.IATFeatures.BackwardIATFeatures.BwdIATTotal) / float64(len(f.timeBetweenBackwardPackets))
 			f.features.IATFeatures.BackwardIATFeatures.BwdIATStd = calculateStdDeviationFloat(f.timeBetweenBackwardPackets, f.features.IATFeatures.BackwardIATFeatures.BwdIATMean)
 			f.features.IATFeatures.BackwardIATFeatures.BwdIATMax = max(f.features.IATFeatures.BackwardIATFeatures.BwdIATMax, f.timeBetweenBackwardPackets[len(f.timeBetweenBackwardPackets)-1])
 			f.features.IATFeatures.BackwardIATFeatures.BwdIATMin = minNonZeroFloat(f.features.IATFeatures.BackwardIATFeatures.BwdIATMin, f.timeBetweenBackwardPackets[len(f.timeBetweenBackwardPackets)-1])
 		}
+		f.lastBackwardPacketTime = time.Now()
 
 		//Bulk transfer features
 		if packetSize > bulkThreshold {
@@ -335,9 +331,11 @@ func (f *FeatureAnalyzer) updateFeatures(packetAnalysis *model.PacketAnalysisTCP
 
 	listIAT := append(f.timeBetweenBackwardPackets, f.timeBetweenForwardPackets...)
 
-	f.features.IATFeatures.FlowIATStd = calculateStdDeviationFloat(listIAT, f.features.IATFeatures.FlowIATMean)
-	f.features.IATFeatures.FlowIATMax = max(f.features.IATFeatures.FlowIATMax, slices.Max(listIAT))
-	f.features.IATFeatures.FlowIATMin = minNonZeroFloat(f.features.IATFeatures.FlowIATMin, slices.Min(listIAT))
+	if len(listIAT) > 1 {
+		f.features.IATFeatures.FlowIATStd = calculateStdDeviationFloat(listIAT, f.features.IATFeatures.FlowIATMean)
+		f.features.IATFeatures.FlowIATMax = max(f.features.IATFeatures.FlowIATMax, slices.Max(listIAT))
+		f.features.IATFeatures.FlowIATMin = minNonZeroFloat(f.features.IATFeatures.FlowIATMin, slices.Min(listIAT))
+	}
 }
 
 func calculateStdDeviation(data []uint64, mean float64) float64 {
