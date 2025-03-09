@@ -2,48 +2,48 @@ package model
 
 type FlowFeatures struct {
 	// Basic Flow Information
-	DestinationPort uint64  `json:"destination_port"` // Destination port of the connection
-	FlowDuration    float64 `json:"flow_duration"`    // Total duration of the flow in microseconds
+	DestinationPort uint64  `json:"Destination Port"` // Destination port of the connection
+	FlowDuration    float64 `json:"Flow Duration"`    // Total duration of the flow in microseconds
 
 	// Packet Count Features ---------------  DONE
-	TotalFwdPackets       uint64 `json:"total_fwd_packets"`        // Number of packets sent in the forward direction
-	TotalBwdPackets       uint64 `json:"total_bwd_packets"`        // Number of packets sent in the backward direction
-	TotalLengthFwdPackets uint64 `json:"total_length_fwd_packets"` // Total size of forward packets
-	TotalLengthBwdPackets uint64 `json:"total_length_bwd_packets"` // Total size of backward packets
+	TotalFwdPackets       uint64 `json:"Total Fwd Packets"`
+	TotalBwdPackets       uint64 `json:"Total Backward Packets"`
+	TotalLengthFwdPackets uint64 `json:"Total Length of Fwd Packets"`
+	TotalLengthBwdPackets uint64 `json:"Total Length of Bwd Packets"`
 
 	// Packet Length Features ---------------  DONE
-	FwdPacketLengthMax  uint64  `json:"fwd_packet_length_max"`  // Maximum length of forward packets , REDUNDANT ?
-	FwdPacketLengthMin  uint64  `json:"fwd_packet_length_min"`  // Minimum length of forward packets , REDUNDANT ?
-	FwdPacketLengthMean float64 `json:"fwd_packet_length_mean"` // Mean length of forward packets
-	FwdPacketLengthStd  float64 `json:"fwd_packet_length_std"`  // Standard deviation of forward packet length
-	BwdPacketLengthMax  uint64  `json:"bwd_packet_length_max"`  // Maximum length of backward packets , REDUNDANT ?
-	BwdPacketLengthMin  uint64  `json:"bwd_packet_length_min"`  // Minimum length of backward packets , REDUNDANT ?
-	BwdPacketLengthMean float64 `json:"bwd_packet_length_mean"` // Mean length of backward packets
-	BwdPacketLengthStd  float64 `json:"bwd_packet_length_std"`  // Standard deviation of backward packet length
+	FwdPacketLengthMax  uint64  `json:"Fwd Packet Length Max"`
+	FwdPacketLengthMin  uint64  `json:"Fwd Packet Length Min"`
+	FwdPacketLengthMean float64 `json:"Fwd Packet Length Mean"`
+	FwdPacketLengthStd  float64 `json:"Fwd Packet Length Std"`
+	BwdPacketLengthMax  uint64  `json:"Bwd Packet Length Max"`
+	BwdPacketLengthMin  uint64  `json:"Bwd Packet Length Min"`
+	BwdPacketLengthMean float64 `json:"Bwd Packet Length Mean"`
+	BwdPacketLengthStd  float64 `json:"Bwd Packet Length Std"`
 
 	// Flow-Based Features ---------------  DONE
-	FlowBytesPerSec   float64 `json:"flow_bytes_per_sec"`   // Data transfer rate in bytes per second
-	FlowPacketsPerSec float64 `json:"flow_packets_per_sec"` // Packet transfer rate per second
-
-	// Header & Packet Rate Features ---------------  DONE
-	FwdHeaderLength  uint64  `json:"fwd_header_length"`   // Header length of forward packets
-	BwdHeaderLength  uint64  `json:"bwd_header_length"`   // Header length of backward packets
-	FwdPacketsPerSec float64 `json:"fwd_packets_per_sec"` // Forward packet transmission rate
-	BwdPacketsPerSec float64 `json:"bwd_packets_per_sec"` // Backward packet transmission rate
-
-	// Packet Size Distribution ---------------  DONE
-	MinPacketLength  uint64  `json:"min_packet_length"`  // Minimum packet size in the flow, REDUNDANT ?
-	MaxPacketLength  uint64  `json:"max_packet_length"`  // Maximum packet size in the flow, REDUNDANT ?
-	PacketLengthMean float64 `json:"packet_length_mean"` // Mean packet size
-	PacketLengthStd  float64 `json:"packet_length_std"`  // Standard deviation of packet size
-
-	// Activity & Idle Time Features
-	ActiveMean float64 `json:"active_mean"` // Mean active time
-	IdleMean   float64 `json:"idle_mean"`   // Mean idle time
-
-	FlagFeatures *FlagFeatures
+	FlowBytesPerSec   float64 `json:"Flow Bytes/s"`
+	FlowPacketsPerSec float64 `json:"Flow Packets/s"`
 
 	IATFeatures *IATFeatures
+
+	// Header & Packet Rate Features ---------------  DONE
+	FwdHeaderLength  uint64  `json:"Fwd Header Length"`
+	BwdHeaderLength  uint64  `json:"Bwd Header Length"`
+	FwdPacketsPerSec float64 `json:"Fwd Packets/s"`
+	BwdPacketsPerSec float64 `json:"Bwd Packets/s"`
+
+	// Packet Size Distribution ---------------  DONE
+	MinPacketLength  uint64  `json:"Min Packet Length"`
+	MaxPacketLength  uint64  `json:"Max Packet Length"`
+	PacketLengthMean float64 `json:"Packet Length Mean"`
+	PacketLengthStd  float64 `json:"Packet Length Std"`
+
+	// Activity & Idle Time Features
+	ActiveMean float64 `json:"Active Mean"`
+	IdleMean   float64 `json:"Idle Mean"`
+
+	FlagFeatures *FlagFeatures
 
 	BulkTransferFeatures *BulkTransferFeatures
 
@@ -52,27 +52,26 @@ type FlowFeatures struct {
 
 type BulkTransferFeatures struct {
 	// Bulk Transfer Features
-	FwdAvgBytesBulk   float64 `json:"fwd_avg_bytes_bulk"`   // Average bulk transfer size for forward direction
-	FwdAvgPacketsBulk float64 `json:"fwd_avg_packets_bulk"` // Average bulk packet count for forward direction
-	BwdAvgBytesBulk   float64 `json:"bwd_avg_bytes_bulk"`   // Average bulk transfer size for backward direction
-	BwdAvgPacketsBulk float64 `json:"bwd_avg_packets_bulk"` // Average bulk packet count for backward direction
+	FwdAvgBytesBulk   float64 `json:"Fwd Avg Bytes/Bulk"`
+	FwdAvgPacketsBulk float64 `json:"Fwd Avg Packets/Bulk"`
+	BwdAvgBytesBulk   float64 `json:"Bwd Avg Bytes/Bulk"`
+	BwdAvgPacketsBulk float64 `json:"Bwd Avg Packets/Bulk"`
 }
 
 type SubflowFeatures struct {
 	// Subflow Features
-	SubflowFwdPackets uint64 `json:"subflow_fwd_packets"` // Number of forward packets in subflow
-	SubflowFwdBytes   uint64 `json:"subflow_fwd_bytes"`   // Number of bytes in forward subflow
-	SubflowBwdPackets uint64 `json:"subflow_bwd_packets"` // Number of backward packets in subflow
-	SubflowBwdBytes   uint64 `json:"subflow_bwd_bytes"`   // Number of bytes in backward subflow
-
+	SubflowFwdPackets uint64 `json:"Subflow Fwd Packets"`
+	SubflowFwdBytes   uint64 `json:"Subflow Fwd Bytes"`
+	SubflowBwdPackets uint64 `json:"Subflow Bwd Packets"`
+	SubflowBwdBytes   uint64 `json:"Subflow Bwd Bytes"`
 }
 
 type IATFeatures struct {
 	// Inter-Arrival Time (IAT) Features
-	FlowIATMean float64 `json:"flow_iat_mean"` // Mean Inter-Arrival Time between packets in the flow
-	FlowIATStd  float64 `json:"flow_iat_std"`  // Standard deviation of packet Inter-Arrival Time
-	FlowIATMax  float64 `json:"flow_iat_max"`  // Maximum Inter-Arrival Time in the flow
-	FlowIATMin  float64 `json:"flow_iat_min"`  // Minimum Inter-Arrival Time in the flow
+	FlowIATMean float64 `json:"Flow IAT Mean"`
+	FlowIATStd  float64 `json:"Flow IAT Std"`
+	FlowIATMax  float64 `json:"Flow IAT Max"`
+	FlowIATMin  float64 `json:"Flow IAT Min"`
 
 	ForwardIATFeatures  *ForwardIATFeatures
 	BackwardIATFeatures *BackwardIATFeatures
@@ -80,37 +79,37 @@ type IATFeatures struct {
 
 type ForwardIATFeatures struct {
 	// Forward Inter-Arrival Time Features
-	FwdIATTotal float64 `json:"fwd_iat_total"` // Total Inter-Arrival Time for forward packets
-	FwdIATMean  float64 `json:"fwd_iat_mean"`  // Mean Inter-Arrival Time of forward packets
-	FwdIATStd   float64 `json:"fwd_iat_std"`   // Standard deviation of forward packet Inter-Arrival Time
-	FwdIATMax   float64 `json:"fwd_iat_max"`   // Maximum Inter-Arrival Time of forward packets
-	FwdIATMin   float64 `json:"fwd_iat_min"`   // Minimum Inter-Arrival Time of forward packets
+	FwdIATTotal float64 `json:"Fwd IAT Total"`
+	FwdIATMean  float64 `json:"Fwd IAT Mean"`
+	FwdIATStd   float64 `json:"Fwd IAT Std"`
+	FwdIATMax   float64 `json:"Fwd IAT Max"`
+	FwdIATMin   float64 `json:"Fwd IAT Min"`
 }
 
 type BackwardIATFeatures struct {
 	// Backward Inter-Arrival Time Features
-	BwdIATTotal float64 `json:"bwd_iat_total"` // Total Inter-Arrival Time for backward packets
-	BwdIATMean  float64 `json:"bwd_iat_mean"`  // Mean Inter-Arrival Time of backward packets
-	BwdIATStd   float64 `json:"bwd_iat_std"`   // Standard deviation of backward packet Inter-Arrival Time
-	BwdIATMax   float64 `json:"bwd_iat_max"`   // Maximum Inter-Arrival Time of backward packets
-	BwdIATMin   float64 `json:"bwd_iat_min"`   // Minimum Inter-Arrival Time of backward packets
+	BwdIATTotal float64 `json:"Bwd IAT Total"`
+	BwdIATMean  float64 `json:"Bwd IAT Mean"`
+	BwdIATStd   float64 `json:"Bwd IAT Std"`
+	BwdIATMax   float64 `json:"Bwd IAT Max"`
+	BwdIATMin   float64 `json:"Bwd IAT Min"`
 }
 
 type FlagFeatures struct {
-	FwdPSHFlags uint64 `json:"fwd_psh_flags"` // Number of PSH flags in forward packets
-	BwdPSHFlags uint64 `json:"bwd_psh_flags"` // Number of PSH flags in backward packets
-	FwdURGFlags uint64 `json:"fwd_urg_flags"` // Number of URG flags in forward packets
-	BwdURGFlags uint64 `json:"bwd_urg_flags"` // Number of URG flags in backward packets
+	FwdPSHFlags uint64 `json:"Fwd PSH Flags"`
+	BwdPSHFlags uint64 `json:"Bwd PSH Flags"`
+	FwdURGFlags uint64 `json:"Fwd URG Flags"`
+	BwdURGFlags uint64 `json:"Bwd URG Flags"`
 
 	// TCP Control Flags
-	FinFlagCount uint64 `json:"fin_flag_count"` // Count of FIN flags
-	SynFlagCount uint64 `json:"syn_flag_count"` // Count of SYN flags
-	RstFlagCount uint64 `json:"rst_flag_count"` // Count of RST flags
-	PshFlagCount uint64 `json:"psh_flag_count"` // Count of PSH flags
-	AckFlagCount uint64 `json:"ack_flag_count"` // Count of ACK flags
-	UrgFlagCount uint64 `json:"urg_flag_count"` // Count of URG flags
-	CweFlagCount uint64 `json:"cwe_flag_count"` // Count of CWE flags
-	EceFlagCount uint64 `json:"ece_flag_count"` // Count of ECE flags
+	FinFlagCount uint64 `json:"FIN Flag Count"`
+	SynFlagCount uint64 `json:"SYN Flag Count"`
+	RstFlagCount uint64 `json:"RST Flag Count"`
+	PshFlagCount uint64 `json:"PSH Flag Count"`
+	AckFlagCount uint64 `json:"ACK Flag Count"`
+	UrgFlagCount uint64 `json:"URG Flag Count"`
+	CweFlagCount uint64 `json:"CWE Flag Count"`
+	EceFlagCount uint64 `json:"ECE Flag Count"`
 }
 
 // Define a struct to represent IPv4 information

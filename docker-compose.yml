@@ -3,6 +3,8 @@ version: '3.8'
 services:
   attacker:
     build: ./attacker
+    volumes:
+      - ./attacker/scripts:/attacker_files
     container_name: attacker-container
     networks:
       test-network:
@@ -16,6 +18,8 @@ services:
     
   attacker1:
     build: ./attacker
+    volumes:
+      - ./attacker/scripts:/attacker_files
     container_name: attacker-container1
     networks:
       test-network:
@@ -29,6 +33,8 @@ services:
 
   attacker2:
     build: ./attacker
+    volumes:
+      - ./attacker/scripts:/attacker_files
     container_name: attacker-container2
     networks:
       test-network:
@@ -40,6 +46,22 @@ services:
     depends_on:
       - golang-ips
 
+
+  python-server:
+    build:
+      context: ./AIModels  # Directory containing your Python server code
+    container_name: python-server-container
+    networks:
+      test-network:
+        ipv4_address: 172.30.0.11
+    volumes:
+      - ./AIModels:/app
+    depends_on:
+      - golang-ips  # Ensures Golang service is up before the Python server starts
+    privileged: true
+    tty: true
+
+      
   golang-ips:
     build: .
     container_name: golang-ips

@@ -54,9 +54,8 @@ func (f *FeatureAnalyzer) analyzerTimeoutChecks() {
 			f.isSubflow = false
 		}
 		f.subflowMutex.Unlock()
-
 		// check the timeout for the flow analysis
-		if time.Since(f.lastPacketTime) > 10*time.Second {
+		if time.Since(f.lastPacketTime) > 6*time.Second {
 			// set the active as false
 			// write to database
 			// remove from map
@@ -179,10 +178,10 @@ func (f *FeatureAnalyzer) updateFeatures(packetAnalysis *model.PacketAnalysisTCP
 	const bulkThreshold = 1000
 
 	// Update flow duration
-	f.features.FlowDuration = float64(time.Since(f.startTime).Milliseconds() / 1000)
+	f.features.FlowDuration = float64(time.Since(f.startTime).Microseconds())
 
 	//Update idle mean
-	timeSinceLastPacket := float64(time.Since(f.lastPacketTime).Milliseconds() / 1000)
+	timeSinceLastPacket := float64(time.Since(f.lastPacketTime).Microseconds())
 	if f.features.FlowDuration > 0 {
 		f.idleTimesSum += timeSinceLastPacket
 		f.features.IdleMean = float64(f.idleTimesSum / (f.features.FlowDuration))
@@ -217,7 +216,7 @@ func (f *FeatureAnalyzer) updateFeatures(packetAnalysis *model.PacketAnalysisTCP
 		f.features.FwdHeaderLength += tcpHeaderLen
 
 		if f.features.FlowDuration > 0 {
-			f.features.FwdPacketsPerSec = float64(f.features.TotalFwdPackets) / (f.features.FlowDuration)
+			f.features.FwdPacketsPerSec = float64(f.features.TotalFwdPackets) / (f.features.FlowDuration / 1e6)
 		}
 
 		if f.features.TotalFwdPackets > 0 {
@@ -227,9 +226,12 @@ func (f *FeatureAnalyzer) updateFeatures(packetAnalysis *model.PacketAnalysisTCP
 		f.features.FwdPacketLengthStd = calculateStdDeviation(f.forwardPacketSizes, f.features.FwdPacketLengthMean)
 
 		//Compute IAT features
-		timeSinceForwardPacket := float64(time.Since(f.lastForwardPacketTime).Milliseconds() / 1000)
+		timeSinceForwardPacket := float64(time.Since(f.lastForwardPacketTime).Microseconds())
 		if timeSinceForwardPacket > 0 && f.features.TotalFwdPackets > 2 {
 			f.timeBetweenForwardPackets = append(f.timeBetweenForwardPackets, timeSinceForwardPacket)
+
+			f.features.IATFeatures.ForwardIATFeatures.FwdIATTotal += timeSinceForwardPacket
+
 			f.features.IATFeatures.ForwardIATFeatures.FwdIATMean = float64(f.features.IATFeatures.ForwardIATFeatures.FwdIATTotal) / float64(len(f.timeBetweenForwardPackets))
 			f.features.IATFeatures.ForwardIATFeatures.FwdIATStd = calculateStdDeviationFloat(f.timeBetweenForwardPackets, f.features.IATFeatures.ForwardIATFeatures.FwdIATMean)
 			f.features.IATFeatures.ForwardIATFeatures.FwdIATMax = max(f.features.IATFeatures.ForwardIATFeatures.FwdIATMax, f.timeBetweenForwardPackets[len(f.timeBetweenForwardPackets)-1])
@@ -268,7 +270,7 @@ func (f *FeatureAnalyzer) updateFeatures(packetAnalysis *model.PacketAnalysisTCP
 		f.features.BwdHeaderLength += tcpHeaderLen
 
 		if f.features.FlowDuration > 0 {
-			f.features.BwdPacketsPerSec = float64(f.features.TotalBwdPackets) / (f.features.FlowDuration)
+			f.features.BwdPacketsPerSec = float64(f.features.TotalBwdPackets) / (f.features.FlowDuration / 1e6)
 		}
 
 		if f.features.TotalBwdPackets > 0 {
@@ -278,9 +280,12 @@ func (f *FeatureAnalyzer) updateFeatures(packetAnalysis *model.PacketAnalysisTCP
 		f.features.BwdPacketLengthStd = calculateStdDeviation(f.backwardPacketSizes, f.features.BwdPacketLengthMean)
 
 		//Compute IAT features
-		timeSinceBackwardPacket := float64(time.Since(f.lastBackwardPacketTime).Milliseconds() / 1000)
+		timeSinceBackwardPacket := float64(time.Since(f.lastBackwardPacketTime).Microseconds())
 		if timeSinceBackwardPacket > 0 && f.features.TotalBwdPackets > 1 {
 			f.timeBetweenBackwardPackets = append(f.timeBetweenBackwardPackets, timeSinceBackwardPacket)
+
+			f.features.IATFeatures.BackwardIATFeatures.BwdIATTotal += timeSinceBackwardPacket
+
 			f.features.IATFeatures.BackwardIATFeatures.BwdIATMean = float64(f.features.IATFeatures.BackwardIATFeatures.BwdIATTotal) / float64(len(f.timeBetweenBackwardPackets))
 			f.features.IATFeatures.BackwardIATFeatures.BwdIATStd = calculateStdDeviationFloat(f.timeBetweenBackwardPackets, f.features.IATFeatures.BackwardIATFeatures.BwdIATMean)
 			f.features.IATFeatures.BackwardIATFeatures.BwdIATMax = max(f.features.IATFeatures.BackwardIATFeatures.BwdIATMax, f.timeBetweenBackwardPackets[len(f.timeBetweenBackwardPackets)-1])
@@ -317,8 +322,8 @@ func (f *FeatureAnalyzer) updateFeatures(packetAnalysis *model.PacketAnalysisTCP
 
 	// Compute flow-based metrics
 	if (f.features.FlowDuration) > 0 {
-		f.features.FlowBytesPerSec = float64(f.features.TotalLengthFwdPackets+f.features.TotalLengthBwdPackets) / (f.features.FlowDuration)
-		f.features.FlowPacketsPerSec = float64(f.features.TotalFwdPackets+f.features.TotalBwdPackets) / (f.features.FlowDuration)
+		f.features.FlowBytesPerSec = float64(f.features.TotalLengthFwdPackets+f.features.TotalLengthBwdPackets) / (f.features.FlowDuration / 1e6)
+		f.features.FlowPacketsPerSec = float64(f.features.TotalFwdPackets+f.features.TotalBwdPackets) / (f.features.FlowDuration / 1e6)
 	}
 
 	f.features.MinPacketLength = minNonZero(f.features.MinPacketLength, packetSize)

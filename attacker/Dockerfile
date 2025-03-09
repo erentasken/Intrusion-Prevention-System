@@ -19,6 +19,8 @@ RUN apt update && apt install -y \
     net-tools \
     iproute2 \
     dnsutils \
+    telnet \
+    sshpass \
     && apt clean
 
 # Create a virtual environment and install Python packages

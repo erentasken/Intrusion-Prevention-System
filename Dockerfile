@@ -1,12 +1,20 @@
 FROM golang:1.23
 
-# Install dependencies including OpenSSH server
+# Install dependencies including required services
 RUN apt-get update && apt-get install -y \
     iptables \
     iputils-ping \
-    openssh-server
+    openssh-server \
+    apache2 \
+    vsftpd \
+    dnsutils \
+    bind9 \
+    postfix \
+    tcpdump \
+    netcat-openbsd \
+    hping3
 
-# Set root password, allow root login and enable password authentication
+# Set root password, allow root login, and enable password authentication
 RUN echo 'root:password' | chpasswd \
     && sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config \
     && echo "PasswordAuthentication yes" >> /etc/ssh/sshd_config
@@ -27,8 +35,13 @@ COPY . .
 # Build the Go application
 RUN go build -o inline-ips main.go
 
-# Expose port for SSH
-EXPOSE 22
+# Expose necessary ports
+EXPOSE 22 80 21 53 25
 
-# Start SSH service and application
-CMD service ssh start && air -c .air.toml
+# Start services manually and keep the container running
+CMD service ssh start && \
+    service apache2 start && \
+    service vsftpd start && \
+    service named start && \
+    service postfix start && \
+    air -c .air.toml

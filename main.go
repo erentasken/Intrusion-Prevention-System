@@ -115,6 +115,18 @@ func queueHandler(queueNum uint16, tcpService *service.TCP) {
 			tcpService.AnalyzeTCP(*a.Payload)
 		}
 
+		// TODO UDP -> For dns queries etc.
+
+		// udpQueue, err := strconv.Atoi(os.Getenv("UDP_QUEUE"))
+		// if err != nil {
+		// 	fmt.Println("Invalid NFQUEUE number for UDP_QUEUE:", err)
+		// 	return -1
+		// }
+
+		// if queueNum == uint16(udpQueue) {
+		// 	tcpService.AnalyzeUDP(*a.Payload)
+		// }
+
 		nf.SetVerdict(id, nfqueue.NfAccept)
 		return 0
 	}
