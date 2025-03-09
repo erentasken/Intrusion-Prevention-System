@@ -45,19 +45,15 @@ func PrepareNFQueues() error {
 		}
 	}
 
-	// TCP PORTS TO MONITOR
-	// 80 http
-	// 443 https
-	// 25 smtp
-	// 110 pop3
-	// 143 imap
-	// 445 smb
-
 	nfqueueRules := [][]string{
-		{"iptables", "-A", "INPUT", "-p", "icmp", "-j", "NFQUEUE", "--queue-num", os.Getenv("ICMP_QUEUE")},       // ICMP (Ping Floods)
-		{"iptables", "-A", "OUTPUT", "-p", "tcp", "-j", "NFQUEUE", "--queue-num", os.Getenv("OUTPUT_TCP_QUEUE")}, // Outgoing Traffic (Insider Threats, Malware)
-		{"iptables", "-A", "INPUT", "-p", "tcp", "-j", "NFQUEUE", "--queue-num", os.Getenv("TCP_QUEUE")},         // General TCP (Port Scanning, Buffer Overflow)
-		{"iptables", "-A", "INPUT", "-p", "udp", "-j", "NFQUEUE", "--queue-num", os.Getenv("UDP_QUEUE")},         // UDP (DDoS, Amplification)
+		// {"iptables", "-A", "INPUT", "-p", "icmp", "-j", "NFQUEUE", "--queue-num", os.Getenv("ICMP_QUEUE")}, // ICMP (Ping Floods)
+		// {"iptables", "-A", "INPUT", "-p", "tcp", "-j", "NFQUEUE", "--queue-num", os.Getenv("TCP_QUEUE")}, // General TCP (Port Scanning, Buffer Overflow)
+		// {"iptables", "-A", "INPUT", "-p", "udp", "-j", "NFQUEUE", "--queue-num", os.Getenv("UDP_QUEUE")},   // UDP (DDoS, Amplification)
+		// outgoing for tcp handshake
+		// {"iptables", "-A", "OUTPUT", "-p", "tcp", "-j", "NFQUEUE", "--queue-num", os.Getenv("TCP_OUT_QUEUE")}, // TCP RST
+
+		{"iptables", "-A", "INPUT", "-p", "tcp", "! --source", "172.30.0.11", "-j", "NFQUEUE", "--queue-num", os.Getenv("TCP_QUEUE")},
+		{"iptables", "-A", "OUTPUT", "-p", "tcp", "! --destination", "172.30.0.11", "-j", "NFQUEUE", "--queue-num", os.Getenv("TCP_OUT_QUEUE")},
 	}
 
 	fmt.Println("[*] Applying iptables rules...")
@@ -68,8 +64,8 @@ func PrepareNFQueues() error {
 	}
 
 	fmt.Println("[*] Ensuring /etc/iptables directory exists...")
+	fmt.Println("[ERROR] Failed to create /etc/iptables directory:", err)
 	if err := runCommand("mkdir", "-p", "/etc/iptables"); err != nil {
-		fmt.Println("[ERROR] Failed to create /etc/iptables directory:", err)
 	}
 
 	fmt.Println("[*] Saving iptables rules for persistence...")

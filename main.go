@@ -3,8 +3,8 @@ package main
 import (
 	"context"
 	"fmt"
-	"main/analyzer"
 	"main/iptables"
+	"main/service"
 	"os"
 	"os/signal"
 	"strconv"
@@ -18,11 +18,6 @@ import (
 
 func main() {
 
-	if err := iptables.PrepareNFQueues(); err != nil {
-		fmt.Println(err)
-		return
-	}
-
 	// Print startup message
 	fmt.Println("Starting IPS System...")
 
@@ -33,13 +28,23 @@ func main() {
 		os.Exit(1)
 	}
 
+	if err := iptables.PrepareNFQueues(); err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	// tcpService := service.NewTCP(redisWrapper)
+	tcpService := service.NewTCP()
+
 	// // Load NFQUEUE numbers from environment variables
 	queueNames := []string{
-		"ICMP_QUEUE",
+		// "ICMP_QUEUE",
 		"TCP_QUEUE",
-		"UDP_QUEUE",
-		"OUTPUT_TCP_QUEUE",
+		"TCP_OUT_QUEUE",
+		// "UDP_QUEUE",
 	}
+
+	// icmpService := service.NewICMP(&redisWrapper)
 
 	for _, name := range queueNames {
 		queueNum, err := strconv.Atoi(os.Getenv(name))
@@ -47,13 +52,13 @@ func main() {
 			fmt.Printf("Invalid NFQUEUE number for %s: %v\n", name, err)
 			os.Exit(1)
 		}
-		go queueHandler(uint16(queueNum))
+		go queueHandler(uint16(queueNum), tcpService)
 	}
 
 	select {}
 }
 
-func queueHandler(queueNum uint16) {
+func queueHandler(queueNum uint16, tcpService *service.TCP) {
 	config := nfqueue.Config{
 		NfQueue:      queueNum,
 		MaxPacketLen: 0xFFFF,
@@ -80,8 +85,10 @@ func queueHandler(queueNum uint16) {
 		shutdownChan := make(chan os.Signal, 1)
 		signal.Notify(shutdownChan, os.Interrupt, syscall.SIGTERM)
 		<-shutdownChan
+
 		fmt.Println("shutting down gracefully...")
 		cancelFunc()
+
 	}()
 
 	fn := func(a nfqueue.Attribute) int {
@@ -94,23 +101,31 @@ func queueHandler(queueNum uint16) {
 			return -1
 		}
 
-		udpQueue, err := strconv.Atoi(os.Getenv("UDP_QUEUE"))
+		if queueNum == uint16(tcpQueue) {
+			tcpService.AnalyzeTCP(*a.Payload)
+		}
+
+		tcpOutQueue, err := strconv.Atoi(os.Getenv("TCP_OUT_QUEUE"))
 		if err != nil {
-			fmt.Println("Invalid NFQUEUE number for UDP_QUEUE:", err)
+			fmt.Println("Invalid NFQUEUE number for TCP_SYN_QUEUE:", err)
 			return -1
 		}
 
-		if queueNum == uint16(tcpQueue) {
-			analyzer.AnalyzeTCP(id, *a.Payload)
+		if queueNum == uint16(tcpOutQueue) {
+			tcpService.AnalyzeTCP(*a.Payload)
 		}
 
-		if queueNum == uint16(udpQueue) {
-			analyzer.AnalyzeUDP(id, *a.Payload)
-		}
+		// TODO UDP -> For dns queries etc.
 
-		if queueNum == uint16(1) {
-			analyzer.AnalyzeICMP(id, *a.Payload)
-		}
+		// udpQueue, err := strconv.Atoi(os.Getenv("UDP_QUEUE"))
+		// if err != nil {
+		// 	fmt.Println("Invalid NFQUEUE number for UDP_QUEUE:", err)
+		// 	return -1
+		// }
+
+		// if queueNum == uint16(udpQueue) {
+		// 	tcpService.AnalyzeUDP(*a.Payload)
+		// }
 
 		nf.SetVerdict(id, nfqueue.NfAccept)
 		return 0
