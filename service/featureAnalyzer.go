@@ -82,6 +82,8 @@ func GetFeatureAnalyzerInstance(packetAnalysis *model.PacketAnalysisTCP, forward
 		timeoutSignal:  timeoutSignal,
 
 		features: &model.FlowFeatures{
+			Protocol: uint64(packetAnalysis.IPv4.Protocol),
+
 			DestinationPort: packetAnalysis.TCP.DestinationPort,
 			FlowDuration:    0,
 
@@ -157,6 +159,10 @@ func GetFeatureAnalyzerInstance(packetAnalysis *model.PacketAnalysisTCP, forward
 				SubflowBwdPackets: 0,
 				SubflowBwdBytes:   0,
 			},
+			ICMPFeatures: &model.ICMPFeatures{
+				ICMPType: 255,
+				ICMPCode: 0,
+			},
 		},
 	}
 
@@ -164,11 +170,514 @@ func GetFeatureAnalyzerInstance(packetAnalysis *model.PacketAnalysisTCP, forward
 
 	return featureAnalyzer
 }
+
+func GetFeatureAnalyzerInstanceUDP(packetAnalysis *model.PacketAnalysisUDP, forwardKey string, timeoutSignal chan string) *FeatureAnalyzer {
+	packetLength := uint64(len(packetAnalysis.UDP.Payload))
+
+	featureAnalyzer := &FeatureAnalyzer{
+		startTime:      time.Now(),
+		lastPacketTime: time.Now(),
+		packetSizes:    []uint64{packetLength},
+		idleTimesSum:   0,
+		isSubflow:      false,
+		forwardKey:     forwardKey,
+		timeoutSignal:  timeoutSignal,
+
+		features: &model.FlowFeatures{
+			Protocol: uint64(packetAnalysis.IPv4.Protocol),
+
+			DestinationPort: packetAnalysis.UDP.DestinationPort,
+			FlowDuration:    0,
+
+			TotalFwdPackets: 1,
+			TotalBwdPackets: 0,
+
+			TotalLengthFwdPackets: packetLength,
+			TotalLengthBwdPackets: 0,
+			FwdPacketLengthMax:    packetLength,
+			FwdPacketLengthMin:    packetLength,
+			FwdPacketLengthMean:   float64(packetLength),
+			FwdPacketLengthStd:    0,
+			BwdPacketLengthMax:    0,
+			BwdPacketLengthMin:    0,
+			BwdPacketLengthMean:   0,
+			BwdPacketLengthStd:    0,
+
+			FlowBytesPerSec:   0,
+			FlowPacketsPerSec: 0,
+
+			FwdHeaderLength:  8, // UDP header is always 8 bytes
+			BwdHeaderLength:  0,
+			FwdPacketsPerSec: 0,
+			BwdPacketsPerSec: 0,
+
+			MinPacketLength:  packetLength,
+			MaxPacketLength:  packetLength,
+			PacketLengthMean: float64(packetLength),
+			PacketLengthStd:  0,
+
+			ActiveMean: 0,
+			IdleMean:   0,
+
+			FlagFeatures: &model.FlagFeatures{
+				FinFlagCount: 0,
+				SynFlagCount: 0,
+				RstFlagCount: 0,
+				PshFlagCount: 0,
+				AckFlagCount: 0,
+				UrgFlagCount: 0,
+				CweFlagCount: 0,
+				EceFlagCount: 0,
+			},
+
+			IATFeatures: &model.IATFeatures{
+				FlowIATMean: 0,
+				FlowIATStd:  0,
+				FlowIATMax:  0,
+				FlowIATMin:  0,
+				ForwardIATFeatures: &model.ForwardIATFeatures{
+					FwdIATTotal: 0,
+					FwdIATMean:  0,
+					FwdIATStd:   0,
+					FwdIATMax:   0,
+					FwdIATMin:   0,
+				},
+				BackwardIATFeatures: &model.BackwardIATFeatures{
+					BwdIATMean: 0,
+					BwdIATStd:  0,
+					BwdIATMax:  0,
+					BwdIATMin:  0,
+				},
+			},
+			BulkTransferFeatures: &model.BulkTransferFeatures{
+				FwdAvgBytesBulk:   0,
+				FwdAvgPacketsBulk: 0,
+				BwdAvgBytesBulk:   0,
+				BwdAvgPacketsBulk: 0,
+			},
+			SubflowFeatures: &model.SubflowFeatures{
+				SubflowFwdPackets: 1,
+				SubflowFwdBytes:   packetLength,
+				SubflowBwdPackets: 0,
+				SubflowBwdBytes:   0,
+			},
+			ICMPFeatures: &model.ICMPFeatures{
+				ICMPType: 255,
+				ICMPCode: 0,
+			},
+		},
+	}
+
+	go featureAnalyzer.analyzerTimeoutChecks()
+
+	return featureAnalyzer
+}
+
+func GetFeatureAnalyzerInstanceICMP(packetAnalysis *model.PacketAnalysisICMP, forwardKey string, timeoutSignal chan string) *FeatureAnalyzer {
+	packetLength := uint64(len(packetAnalysis.ICMP.Payload))
+
+	featureAnalyzer := &FeatureAnalyzer{
+		startTime:      time.Now(),
+		lastPacketTime: time.Now(),
+		packetSizes:    []uint64{packetLength},
+		idleTimesSum:   0,
+		isSubflow:      false,
+		forwardKey:     forwardKey,
+		timeoutSignal:  timeoutSignal,
+
+		features: &model.FlowFeatures{
+			Protocol: uint64(packetAnalysis.IPv4.Protocol),
+
+			DestinationPort: 0, // ICMP doesn't have a port
+			FlowDuration:    0,
+
+			TotalFwdPackets: 1,
+			TotalBwdPackets: 0,
+
+			TotalLengthFwdPackets: packetLength,
+			TotalLengthBwdPackets: 0,
+			FwdPacketLengthMax:    packetLength,
+			FwdPacketLengthMin:    packetLength,
+			FwdPacketLengthMean:   float64(packetLength),
+			FwdPacketLengthStd:    0,
+			BwdPacketLengthMax:    0,
+			BwdPacketLengthMin:    0,
+			BwdPacketLengthMean:   0,
+			BwdPacketLengthStd:    0,
+
+			FlowBytesPerSec:   0,
+			FlowPacketsPerSec: 0,
+
+			FwdHeaderLength:  8, // ICMP header is 8 bytes
+			BwdHeaderLength:  0,
+			FwdPacketsPerSec: 0,
+			BwdPacketsPerSec: 0,
+
+			MinPacketLength:  packetLength,
+			MaxPacketLength:  packetLength,
+			PacketLengthMean: float64(packetLength),
+			PacketLengthStd:  0,
+
+			ActiveMean: 0,
+			IdleMean:   0,
+
+			FlagFeatures: &model.FlagFeatures{
+				FinFlagCount: 0,
+				SynFlagCount: 0,
+				RstFlagCount: 0,
+				PshFlagCount: 0,
+				AckFlagCount: 0,
+				UrgFlagCount: 0,
+				CweFlagCount: 0,
+				EceFlagCount: 0,
+			},
+
+			IATFeatures: &model.IATFeatures{
+				FlowIATMean: 0,
+				FlowIATStd:  0,
+				FlowIATMax:  0,
+				FlowIATMin:  0,
+				ForwardIATFeatures: &model.ForwardIATFeatures{
+					FwdIATTotal: 0,
+					FwdIATMean:  0,
+					FwdIATStd:   0,
+					FwdIATMax:   0,
+					FwdIATMin:   0,
+				},
+				BackwardIATFeatures: &model.BackwardIATFeatures{
+					BwdIATMean: 0,
+					BwdIATStd:  0,
+					BwdIATMax:  0,
+					BwdIATMin:  0,
+				},
+			},
+			BulkTransferFeatures: &model.BulkTransferFeatures{
+				FwdAvgBytesBulk:   0,
+				FwdAvgPacketsBulk: 0,
+				BwdAvgBytesBulk:   0,
+				BwdAvgPacketsBulk: 0,
+			},
+			SubflowFeatures: &model.SubflowFeatures{
+				SubflowFwdPackets: 1,
+				SubflowFwdBytes:   packetLength,
+				SubflowBwdPackets: 0,
+				SubflowBwdBytes:   0,
+			},
+			ICMPFeatures: &model.ICMPFeatures{
+				ICMPType: packetAnalysis.ICMP.Type, // ICMP type from the packet
+				ICMPCode: packetAnalysis.ICMP.Code, // ICMP code from the packet
+			},
+		},
+	}
+
+	go featureAnalyzer.analyzerTimeoutChecks()
+
+	return featureAnalyzer
+}
+
 func boolToInt(b bool) uint64 {
 	if b {
 		return 1
 	}
 	return 0
+}
+
+func (f *FeatureAnalyzer) updateFeaturesICMP(packetAnalysis *model.PacketAnalysisICMP, flowDirection string) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+
+	const bulkThreshold = 1000
+
+	// Update flow duration
+	f.features.FlowDuration = float64(time.Since(f.startTime).Microseconds())
+
+	// Update idle mean
+	timeSinceLastPacket := float64(time.Since(f.lastPacketTime).Microseconds())
+	if f.features.FlowDuration > 0 {
+		f.idleTimesSum += timeSinceLastPacket
+		f.features.IdleMean = float64(f.idleTimesSum / f.features.FlowDuration)
+	}
+
+	// Update active mean
+	if f.features.FlowDuration > 0 {
+		f.features.ActiveMean = float64((f.features.FlowDuration - f.idleTimesSum) / f.features.FlowDuration)
+	}
+
+	f.lastPacketTime = time.Now()
+	packetSize := uint64(len(packetAnalysis.ICMP.Payload))
+
+	// Add packet size to list of packet sizes
+	f.packetSizes = append(f.packetSizes, packetSize)
+
+	switch flowDirection {
+	case "forward":
+		f.features.TotalFwdPackets++
+		f.features.TotalLengthFwdPackets += packetSize
+		f.forwardPacketSizes = append(f.forwardPacketSizes, packetSize)
+
+		f.features.FwdPacketLengthMax = max(f.features.FwdPacketLengthMax, packetSize)
+		f.features.FwdPacketLengthMin = minNonZero(f.features.FwdPacketLengthMin, packetSize)
+
+		f.features.FwdHeaderLength += 8 // ICMP header length is always 8 bytes
+
+		if f.features.FlowDuration > 0 {
+			f.features.FwdPacketsPerSec = float64(f.features.TotalFwdPackets) / (f.features.FlowDuration / 1e6)
+		}
+		if f.features.TotalFwdPackets > 0 {
+			f.features.FwdPacketLengthMean = float64(f.features.TotalLengthFwdPackets) / float64(f.features.TotalFwdPackets)
+		}
+		f.features.FwdPacketLengthStd = calculateStdDeviation(f.forwardPacketSizes, f.features.FwdPacketLengthMean)
+
+		// Compute IAT features for forward direction
+		timeSinceForwardPacket := float64(time.Since(f.lastForwardPacketTime).Microseconds())
+		if timeSinceForwardPacket > 0 && f.features.TotalFwdPackets > 2 {
+			f.timeBetweenForwardPackets = append(f.timeBetweenForwardPackets, timeSinceForwardPacket)
+
+			f.features.IATFeatures.ForwardIATFeatures.FwdIATTotal += timeSinceForwardPacket
+
+			f.features.IATFeatures.ForwardIATFeatures.FwdIATMean = float64(f.features.IATFeatures.ForwardIATFeatures.FwdIATTotal) / float64(len(f.timeBetweenForwardPackets))
+			f.features.IATFeatures.ForwardIATFeatures.FwdIATStd = calculateStdDeviationFloat(f.timeBetweenForwardPackets, f.features.IATFeatures.ForwardIATFeatures.FwdIATMean)
+			f.features.IATFeatures.ForwardIATFeatures.FwdIATMax = max(f.features.IATFeatures.ForwardIATFeatures.FwdIATMax, f.timeBetweenForwardPackets[len(f.timeBetweenForwardPackets)-1])
+			f.features.IATFeatures.ForwardIATFeatures.FwdIATMin = minNonZeroFloat(f.features.IATFeatures.ForwardIATFeatures.FwdIATMin, f.timeBetweenForwardPackets[len(f.timeBetweenForwardPackets)-1])
+		}
+		f.lastForwardPacketTime = time.Now()
+
+		// Bulk transfer features
+		if packetSize > bulkThreshold {
+			f.totalBulkByteFwd += packetSize
+			f.totalBulkPacketsFwd++
+
+			f.features.BulkTransferFeatures.FwdAvgBytesBulk = float64(f.totalBulkByteFwd / f.totalBulkPacketsFwd)
+			f.features.BulkTransferFeatures.FwdAvgPacketsBulk = float64(f.totalBulkPacketsFwd)
+		}
+
+		f.subflowMutex.Lock()
+		// Subflow features
+		if f.isSubflow {
+			f.features.SubflowFeatures.SubflowFwdPackets++
+			f.features.SubflowFeatures.SubflowFwdBytes += packetSize
+		}
+		f.subflowMutex.Unlock()
+
+	case "backward":
+		f.features.TotalBwdPackets++
+		f.features.TotalLengthBwdPackets += packetSize
+		f.backwardPacketSizes = append(f.backwardPacketSizes, packetSize)
+
+		f.features.BwdPacketLengthMax = max(f.features.BwdPacketLengthMax, packetSize)
+		f.features.BwdPacketLengthMin = minNonZero(f.features.BwdPacketLengthMin, packetSize)
+
+		f.features.BwdHeaderLength += 8 // ICMP header length is always 8 bytes
+
+		if f.features.FlowDuration > 0 {
+			f.features.BwdPacketsPerSec = float64(f.features.TotalBwdPackets) / (f.features.FlowDuration / 1e6)
+		}
+		if f.features.TotalBwdPackets > 0 {
+			f.features.BwdPacketLengthMean = float64(f.features.TotalLengthBwdPackets) / float64(f.features.TotalBwdPackets)
+		}
+		f.features.BwdPacketLengthStd = calculateStdDeviation(f.backwardPacketSizes, f.features.BwdPacketLengthMean)
+
+		// Compute IAT features for backward direction
+		timeSinceBackwardPacket := float64(time.Since(f.lastBackwardPacketTime).Microseconds())
+		if timeSinceBackwardPacket > 0 && f.features.TotalBwdPackets > 1 {
+			f.timeBetweenBackwardPackets = append(f.timeBetweenBackwardPackets, timeSinceBackwardPacket)
+
+			f.features.IATFeatures.BackwardIATFeatures.BwdIATTotal += timeSinceBackwardPacket
+
+			f.features.IATFeatures.BackwardIATFeatures.BwdIATMean = float64(f.features.IATFeatures.BackwardIATFeatures.BwdIATTotal) / float64(len(f.timeBetweenBackwardPackets))
+			f.features.IATFeatures.BackwardIATFeatures.BwdIATStd = calculateStdDeviationFloat(f.timeBetweenBackwardPackets, f.features.IATFeatures.BackwardIATFeatures.BwdIATMean)
+			f.features.IATFeatures.BackwardIATFeatures.BwdIATMax = max(f.features.IATFeatures.BackwardIATFeatures.BwdIATMax, f.timeBetweenBackwardPackets[len(f.timeBetweenBackwardPackets)-1])
+			f.features.IATFeatures.BackwardIATFeatures.BwdIATMin = minNonZeroFloat(f.features.IATFeatures.BackwardIATFeatures.BwdIATMin, f.timeBetweenBackwardPackets[len(f.timeBetweenBackwardPackets)-1])
+		}
+		f.lastBackwardPacketTime = time.Now()
+
+		// Bulk transfer features
+		if packetSize > bulkThreshold {
+			f.totalBulkByteBwd += packetSize
+			f.totalBulkPacketsBwd++
+			f.features.BulkTransferFeatures.BwdAvgBytesBulk = float64(f.totalBulkByteBwd / f.totalBulkPacketsBwd)
+			f.features.BulkTransferFeatures.BwdAvgPacketsBulk = float64(f.totalBulkPacketsBwd)
+		}
+
+		f.subflowMutex.Lock()
+		// Subflow features
+		if f.isSubflow {
+			f.features.SubflowFeatures.SubflowBwdPackets++
+			f.features.SubflowFeatures.SubflowBwdBytes += packetSize
+		}
+		f.subflowMutex.Unlock()
+	}
+
+	// Compute flow-based metrics
+	if f.features.FlowDuration > 0 {
+		f.features.FlowBytesPerSec = float64(f.features.TotalLengthFwdPackets+f.features.TotalLengthBwdPackets) / (f.features.FlowDuration / 1e6)
+		f.features.FlowPacketsPerSec = float64(f.features.TotalFwdPackets+f.features.TotalBwdPackets) / (f.features.FlowDuration / 1e6)
+	}
+
+	f.features.MinPacketLength = minNonZero(f.features.MinPacketLength, packetSize)
+	f.features.MaxPacketLength = max(f.features.MaxPacketLength, packetSize)
+	f.features.PacketLengthMean = float64((f.features.TotalLengthFwdPackets + f.features.TotalLengthBwdPackets) / (f.features.TotalFwdPackets + f.features.TotalBwdPackets))
+	f.features.PacketLengthStd = calculateStdDeviation(f.packetSizes, f.features.PacketLengthMean)
+
+	// Compute IAT features
+	f.features.IATFeatures.FlowIATMean = float64((f.features.IATFeatures.BackwardIATFeatures.BwdIATTotal + f.features.IATFeatures.ForwardIATFeatures.FwdIATTotal) / float64(f.features.TotalBwdPackets+f.features.TotalFwdPackets))
+
+	listIAT := append(f.timeBetweenBackwardPackets, f.timeBetweenForwardPackets...)
+
+	if len(listIAT) > 1 {
+		f.features.IATFeatures.FlowIATStd = calculateStdDeviationFloat(listIAT, f.features.IATFeatures.FlowIATMean)
+		f.features.IATFeatures.FlowIATMax = max(f.features.IATFeatures.FlowIATMax, slices.Max(listIAT))
+		f.features.IATFeatures.FlowIATMin = minNonZeroFloat(f.features.IATFeatures.FlowIATMin, slices.Min(listIAT))
+	}
+}
+
+func (f *FeatureAnalyzer) updateFeaturesUDP(packetAnalysis *model.PacketAnalysisUDP, flowDirection string) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+
+	const bulkThreshold = 1000
+
+	// Update flow duration
+	f.features.FlowDuration = float64(time.Since(f.startTime).Microseconds())
+
+	// Update idle mean
+	timeSinceLastPacket := float64(time.Since(f.lastPacketTime).Microseconds())
+	if f.features.FlowDuration > 0 {
+		f.idleTimesSum += timeSinceLastPacket
+		f.features.IdleMean = float64(f.idleTimesSum / f.features.FlowDuration)
+	}
+
+	// Update active mean
+	if f.features.FlowDuration > 0 {
+		f.features.ActiveMean = float64((f.features.FlowDuration - f.idleTimesSum) / f.features.FlowDuration)
+	}
+
+	f.lastPacketTime = time.Now()
+	packetSize := uint64(len(packetAnalysis.UDP.Payload))
+
+	// Add packet size to list of packet sizes
+	f.packetSizes = append(f.packetSizes, packetSize)
+
+	switch flowDirection {
+	case "forward":
+		f.features.TotalFwdPackets++
+		f.features.TotalLengthFwdPackets += packetSize
+		f.forwardPacketSizes = append(f.forwardPacketSizes, packetSize)
+
+		f.features.FwdPacketLengthMax = max(f.features.FwdPacketLengthMax, packetSize)
+		f.features.FwdPacketLengthMin = minNonZero(f.features.FwdPacketLengthMin, packetSize)
+
+		f.features.FwdHeaderLength += 8 // UDP header length is always 8 bytes
+
+		if f.features.FlowDuration > 0 {
+			f.features.FwdPacketsPerSec = float64(f.features.TotalFwdPackets) / (f.features.FlowDuration / 1e6)
+		}
+		if f.features.TotalFwdPackets > 0 {
+			f.features.FwdPacketLengthMean = float64(f.features.TotalLengthFwdPackets) / float64(f.features.TotalFwdPackets)
+		}
+		f.features.FwdPacketLengthStd = calculateStdDeviation(f.forwardPacketSizes, f.features.FwdPacketLengthMean)
+
+		//Compute IAT features
+		timeSinceForwardPacket := float64(time.Since(f.lastForwardPacketTime).Microseconds())
+		if timeSinceForwardPacket > 0 && f.features.TotalFwdPackets > 2 {
+			f.timeBetweenForwardPackets = append(f.timeBetweenForwardPackets, timeSinceForwardPacket)
+
+			f.features.IATFeatures.ForwardIATFeatures.FwdIATTotal += timeSinceForwardPacket
+
+			f.features.IATFeatures.ForwardIATFeatures.FwdIATMean = float64(f.features.IATFeatures.ForwardIATFeatures.FwdIATTotal) / float64(len(f.timeBetweenForwardPackets))
+			f.features.IATFeatures.ForwardIATFeatures.FwdIATStd = calculateStdDeviationFloat(f.timeBetweenForwardPackets, f.features.IATFeatures.ForwardIATFeatures.FwdIATMean)
+			f.features.IATFeatures.ForwardIATFeatures.FwdIATMax = max(f.features.IATFeatures.ForwardIATFeatures.FwdIATMax, f.timeBetweenForwardPackets[len(f.timeBetweenForwardPackets)-1])
+			f.features.IATFeatures.ForwardIATFeatures.FwdIATMin = minNonZeroFloat(f.features.IATFeatures.ForwardIATFeatures.FwdIATMin, f.timeBetweenForwardPackets[len(f.timeBetweenForwardPackets)-1])
+		}
+		f.lastForwardPacketTime = time.Now()
+
+		//Bulk transfer features
+		if packetSize > bulkThreshold {
+			f.totalBulkByteFwd += packetSize
+			f.totalBulkPacketsFwd++
+
+			f.features.BulkTransferFeatures.FwdAvgBytesBulk = float64(f.totalBulkByteFwd / f.totalBulkPacketsFwd)
+			f.features.BulkTransferFeatures.FwdAvgPacketsBulk = float64(f.totalBulkPacketsFwd)
+		}
+
+		f.subflowMutex.Lock()
+		// Subflow features
+		if f.isSubflow {
+			f.features.SubflowFeatures.SubflowFwdPackets++
+			f.features.SubflowFeatures.SubflowFwdBytes += packetSize
+		}
+		f.subflowMutex.Unlock()
+
+	case "backward":
+		f.features.TotalBwdPackets++
+		f.features.TotalLengthBwdPackets += packetSize
+		f.backwardPacketSizes = append(f.backwardPacketSizes, packetSize)
+
+		f.features.BwdPacketLengthMax = max(f.features.BwdPacketLengthMax, packetSize)
+		f.features.BwdPacketLengthMin = minNonZero(f.features.BwdPacketLengthMin, packetSize)
+
+		f.features.BwdHeaderLength += 8 // UDP header length is always 8 bytes
+
+		if f.features.FlowDuration > 0 {
+			f.features.BwdPacketsPerSec = float64(f.features.TotalBwdPackets) / (f.features.FlowDuration / 1e6)
+		}
+		if f.features.TotalBwdPackets > 0 {
+			f.features.BwdPacketLengthMean = float64(f.features.TotalLengthBwdPackets) / float64(f.features.TotalBwdPackets)
+		}
+		f.features.BwdPacketLengthStd = calculateStdDeviation(f.backwardPacketSizes, f.features.BwdPacketLengthMean)
+
+		//Compute IAT features
+		timeSinceBackwardPacket := float64(time.Since(f.lastBackwardPacketTime).Microseconds())
+		if timeSinceBackwardPacket > 0 && f.features.TotalBwdPackets > 1 {
+			f.timeBetweenBackwardPackets = append(f.timeBetweenBackwardPackets, timeSinceBackwardPacket)
+
+			f.features.IATFeatures.BackwardIATFeatures.BwdIATTotal += timeSinceBackwardPacket
+
+			f.features.IATFeatures.BackwardIATFeatures.BwdIATMean = float64(f.features.IATFeatures.BackwardIATFeatures.BwdIATTotal) / float64(len(f.timeBetweenBackwardPackets))
+			f.features.IATFeatures.BackwardIATFeatures.BwdIATStd = calculateStdDeviationFloat(f.timeBetweenBackwardPackets, f.features.IATFeatures.BackwardIATFeatures.BwdIATMean)
+			f.features.IATFeatures.BackwardIATFeatures.BwdIATMax = max(f.features.IATFeatures.BackwardIATFeatures.BwdIATMax, f.timeBetweenBackwardPackets[len(f.timeBetweenBackwardPackets)-1])
+			f.features.IATFeatures.BackwardIATFeatures.BwdIATMin = minNonZeroFloat(f.features.IATFeatures.BackwardIATFeatures.BwdIATMin, f.timeBetweenBackwardPackets[len(f.timeBetweenBackwardPackets)-1])
+		}
+		f.lastBackwardPacketTime = time.Now()
+
+		//Bulk transfer features
+		if packetSize > bulkThreshold {
+			f.totalBulkByteBwd += packetSize
+			f.totalBulkPacketsBwd++
+			f.features.BulkTransferFeatures.BwdAvgBytesBulk = float64(f.totalBulkByteBwd / f.totalBulkPacketsBwd)
+			f.features.BulkTransferFeatures.BwdAvgPacketsBulk = float64(f.totalBulkPacketsBwd)
+		}
+
+		f.subflowMutex.Lock()
+		// Subflow features
+		if f.isSubflow {
+			f.features.SubflowFeatures.SubflowBwdPackets++
+			f.features.SubflowFeatures.SubflowBwdBytes += packetSize
+		}
+		f.subflowMutex.Unlock()
+	}
+
+	// Compute flow-based metrics
+	if f.features.FlowDuration > 0 {
+		f.features.FlowBytesPerSec = float64(f.features.TotalLengthFwdPackets+f.features.TotalLengthBwdPackets) / (f.features.FlowDuration / 1e6)
+		f.features.FlowPacketsPerSec = float64(f.features.TotalFwdPackets+f.features.TotalBwdPackets) / (f.features.FlowDuration / 1e6)
+	}
+
+	f.features.MinPacketLength = minNonZero(f.features.MinPacketLength, packetSize)
+	f.features.MaxPacketLength = max(f.features.MaxPacketLength, packetSize)
+	f.features.PacketLengthMean = float64((f.features.TotalLengthFwdPackets + f.features.TotalLengthBwdPackets) / (f.features.TotalFwdPackets + f.features.TotalBwdPackets))
+	f.features.PacketLengthStd = calculateStdDeviation(f.packetSizes, f.features.PacketLengthMean)
+
+	// Compute IAT features
+	f.features.IATFeatures.FlowIATMean = float64((f.features.IATFeatures.BackwardIATFeatures.BwdIATTotal + f.features.IATFeatures.ForwardIATFeatures.FwdIATTotal) / float64(f.features.TotalBwdPackets+f.features.TotalFwdPackets))
+
+	listIAT := append(f.timeBetweenBackwardPackets, f.timeBetweenForwardPackets...)
+
+	if len(listIAT) > 1 {
+		f.features.IATFeatures.FlowIATStd = calculateStdDeviationFloat(listIAT, f.features.IATFeatures.FlowIATMean)
+		f.features.IATFeatures.FlowIATMax = max(f.features.IATFeatures.FlowIATMax, slices.Max(listIAT))
+		f.features.IATFeatures.FlowIATMin = minNonZeroFloat(f.features.IATFeatures.FlowIATMin, slices.Min(listIAT))
+	}
 }
 
 func (f *FeatureAnalyzer) updateFeatures(packetAnalysis *model.PacketAnalysisTCP, flowDirection string) {
@@ -309,6 +818,8 @@ func (f *FeatureAnalyzer) updateFeatures(packetAnalysis *model.PacketAnalysisTCP
 		}
 		f.subflowMutex.Unlock()
 	}
+
+	// if there is UDP then set 0 for each flags
 
 	// Update TCP flag counts
 	f.features.FlagFeatures.FinFlagCount += boolToInt(packetAnalysis.TCP.FIN)

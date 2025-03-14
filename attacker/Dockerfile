@@ -1,6 +1,6 @@
 FROM kalilinux/kali-rolling
 
-WORKDIR /attack-scripts
+WORKDIR /attacker_files
 
 # Install dependencies
 RUN apt update && apt install -y \

