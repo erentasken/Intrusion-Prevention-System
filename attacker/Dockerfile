@@ -20,6 +20,7 @@ RUN apt update && apt install -y \
     iproute2 \
     dnsutils \
     telnet \
+    iputils-ping \
     sshpass \
     && apt clean
 
@@ -27,6 +28,8 @@ RUN apt update && apt install -y \
 RUN python3 -m venv /venv
 RUN /venv/bin/pip install --upgrade pip
 RUN /venv/bin/pip install scapy requests
+RUN /venv/bin/pip install paramiko
+
 
 
 # Start bash to keep the container running (for manual debugging)

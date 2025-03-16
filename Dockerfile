@@ -11,6 +11,7 @@ RUN apt-get update && apt-get install -y \
     bind9 \
     postfix \
     tcpdump \
+    vim \
     netcat-openbsd \
     hping3
 
@@ -32,11 +33,25 @@ RUN go mod tidy
 # Copy the application files
 COPY . .
 
+
+COPY main.conf /etc/postfix/main.cf
+
 # Build the Go application
 RUN go build -o inline-ips main.go
 
 # Expose necessary ports
 EXPOSE 22 80 21 53 25
+
+
+# Expose UDP port 161 for listening
+EXPOSE 161/udp
+
+RUN echo '#!/bin/bash\nwhile true; do \
+    RESPONSE="DNS Response: example.com A 93.184.216.34"\n\
+    echo -n "$RESPONSE" | nc -ul -p 161\n\
+    sleep 1\n\
+done' > /udpListener.sh && chmod +x /udpListener.sh
+
 
 # Start services manually and keep the container running
 CMD service ssh start && \
@@ -44,4 +59,5 @@ CMD service ssh start && \
     service vsftpd start && \
     service named start && \
     service postfix start && \
-    air -c .air.toml
+    /udpListener.sh & \
+    exec air -c .air.toml

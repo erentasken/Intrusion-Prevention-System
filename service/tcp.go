@@ -69,6 +69,7 @@ func (t *TCP) AnalyzeTCP(payload []byte) {
 		// key = backwardKey
 		direction = "backward"
 	} else {
+		fmt.Println("[ TCP ] Creating new feature analyzer for key: ", forwardKey)
 		t.FeatureAnalyzer[forwardKey] = GetFeatureAnalyzerInstance(&packetAnalysis, forwardKey, t.timeoutSignal)
 		return
 	}

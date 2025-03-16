@@ -49,13 +49,13 @@ func PrepareNFQueues() error {
 		{"iptables", "-A", "INPUT", "-p", "tcp", "!", "--source", "172.30.0.11", "-j", "NFQUEUE", "--queue-num", os.Getenv("TCP_QUEUE")},
 		{"iptables", "-A", "OUTPUT", "-p", "tcp", "!", "--destination", "172.30.0.11", "-j", "NFQUEUE", "--queue-num", os.Getenv("TCP_QUEUE")},
 
-		// UDP rules
-		{"iptables", "-A", "INPUT", "-p", "udp", "!", "--source", "172.30.0.11", "-j", "NFQUEUE", "--queue-num", os.Getenv("UDP_QUEUE")},
-		{"iptables", "-A", "OUTPUT", "-p", "udp", "!", "--destination", "172.30.0.11", "-j", "NFQUEUE", "--queue-num", os.Getenv("UDP_QUEUE")},
-
 		// ICMP rules
 		{"iptables", "-A", "INPUT", "-p", "icmp", "!", "--source", "172.30.0.11", "-j", "NFQUEUE", "--queue-num", os.Getenv("ICMP_QUEUE")},
 		{"iptables", "-A", "OUTPUT", "-p", "icmp", "!", "--destination", "172.30.0.11", "-j", "NFQUEUE", "--queue-num", os.Getenv("ICMP_QUEUE")},
+
+		// UDP rules
+		{"iptables", "-A", "INPUT", "-p", "udp", "!", "--source", "172.30.0.11", "-j", "NFQUEUE", "--queue-num", os.Getenv("UDP_QUEUE")},
+		{"iptables", "-A", "OUTPUT", "-p", "udp", "!", "--destination", "172.30.0.11", "-j", "NFQUEUE", "--queue-num", os.Getenv("UDP_QUEUE")},
 	}
 
 	fmt.Println("[*] Applying iptables rules...")
