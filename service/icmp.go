@@ -102,7 +102,7 @@ func (i *ICMP) FlowMapTimeout() {
 		case key = <-i.timeoutSignal:
 			// fmt.Println("Timeout signal received for key: ", key)
 
-			err := WriteToCSV("test", i.FeatureAnalyzer[key])
+			err := WriteToCSV("icmp_attack", i.FeatureAnalyzer[key])
 			if err != nil {
 				fmt.Println("Error writing to CSV file: ", err)
 			}

@@ -22,8 +22,9 @@ def run_icmp_attack(target_ip):
     # ])
 
     try:
+        i = 0
         while True:
-            sleep_intervals = [random.randint(5, 15), random.randint(15, 60), random.randint(60, 90)]
+            sleep_intervals = [random.randint(5, 15), random.randint(15, 35), random.randint(35, 60)]
             random_sleep = random.choice(sleep_intervals)
             random_attack = random.choice(icmp_attacks)
 
@@ -31,6 +32,12 @@ def run_icmp_attack(target_ip):
             process = subprocess.Popen(random_attack, shell=True, preexec_fn=lambda: signal.signal(signal.SIGPIPE, signal.SIG_DFL))
 
             time.sleep(random_sleep)
+            time.sleep(sleep_intervals[i])
+            i += 1
+
+            if i == 3:
+                i = 0
+
             process.terminate()
             subprocess.call("killall hping3", shell=True)
             
