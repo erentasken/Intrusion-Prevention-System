@@ -81,13 +81,14 @@ func (u *UDP) AnalyzeUDP(payload []byte) {
 
 		// Ensure at least 1 second has passed since the last prediction
 		if !exists || now.Sub(lastTS) >= time.Second {
-			fmt.Println("prediction for : ", key)
 			u.lastPredictionTS[key] = now
 			dataString := returnDataIntoString(featureAnalyzer)
-			_, err := getPrediction(dataString)
+			pred, err := getPrediction(dataString)
 			if err != nil {
 				fmt.Println("Error getting prediction:", err)
 			}
+
+			fmt.Println(key, " : ", pred)
 		}
 	}
 }
@@ -108,10 +109,12 @@ func (u *UDP) FlowMapTimeout() {
 			// fmt.Println("[ UDP ] Timeout signal received for key: ", key)
 
 			// AI Prediction
-			_, err := getPrediction(returnDataIntoString(u.FeatureAnalyzer[key]))
+			pred, err := getPrediction(returnDataIntoString(u.FeatureAnalyzer[key]))
 			if err != nil {
 				fmt.Println("Error getting prediction: ", err)
 			}
+
+			fmt.Println(key, " : ", pred)
 
 			delete(u.FeatureAnalyzer, key)
 

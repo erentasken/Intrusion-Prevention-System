@@ -83,13 +83,13 @@ func (i *ICMP) AnalyzeICMP(payload []byte) {
 
 		// Ensure at least 1 second has passed since the last prediction
 		if !exists || now.Sub(lastTS) >= time.Second {
-			fmt.Println("precision for : ", key)
 			i.lastPredictionTS[key] = now
 			dataString := returnDataIntoString(featureAnalyzer)
-			_, err := getPrediction(dataString)
+			pred, err := getPrediction(dataString)
 			if err != nil {
 				fmt.Println("Error getting prediction:", err)
 			}
+			fmt.Println(key, " : ", pred)
 		}
 	}
 
@@ -102,18 +102,20 @@ func (i *ICMP) FlowMapTimeout() {
 		case key = <-i.timeoutSignal:
 			// fmt.Println("Timeout signal received for key: ", key)
 			i.mutexLock.Lock()
-			err := WriteToCSV("icmp_normal", i.FeatureAnalyzer[key])
-			if err != nil {
-				fmt.Println("Error writing to CSV file: ", err)
-			}
+			// err := WriteToCSV("icmp_normal", i.FeatureAnalyzer[key])
+			// if err != nil {
+			// 	fmt.Println("Error writing to CSV file: ", err)
+			// }
 
 			// fmt.Println("[ ICMP ]Timeout signal received for key: ", key)
 
 			// AI PREDICTION
-			_, err = getPrediction(returnDataIntoString(i.FeatureAnalyzer[key]))
+			pred, err := getPrediction(returnDataIntoString(i.FeatureAnalyzer[key]))
 			if err != nil {
 				fmt.Println("Error getting prediction: ", err)
 			}
+
+			fmt.Println(key, " : ", pred)
 
 			delete(i.FeatureAnalyzer, key)
 			i.mutexLock.Unlock()

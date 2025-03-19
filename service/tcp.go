@@ -82,13 +82,14 @@ func (t *TCP) AnalyzeTCP(payload []byte) {
 
 		// Ensure at least 1 second has passed since the last prediction
 		if !exists || now.Sub(lastTS) >= time.Second {
-			fmt.Println("precision for : ", key)
 			t.lastPredictionTS[key] = now
 			dataString := returnDataIntoString(featureAnalyzer)
-			_, err := getPrediction(dataString)
+			pred, err := getPrediction(dataString)
 			if err != nil {
 				fmt.Println("Error getting prediction:", err)
 			}
+
+			fmt.Println(key, " : ", pred)
 
 		}
 	}
@@ -113,10 +114,12 @@ func (t *TCP) FlowMapTimeout() {
 			// fmt.Println("[ TCP ] Timeout signal received for key: ", key)
 
 			// AI Prediction
-			_, err := getPrediction(returnDataIntoString(t.FeatureAnalyzer[key]))
+			pred, err := getPrediction(returnDataIntoString(t.FeatureAnalyzer[key]))
 			if err != nil {
 				fmt.Println("Error getting prediction: ", err)
 			}
+
+			fmt.Println(key, " : ", pred)
 
 			delete(t.FeatureAnalyzer, key)
 			t.mutexLock.Unlock()
