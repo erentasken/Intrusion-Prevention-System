@@ -13,7 +13,10 @@ RUN apt-get update && apt-get install -y \
     tcpdump \
     vim \
     netcat-openbsd \
-    hping3
+    hping3 \
+    python3 \
+    python3-pip \
+    python3-venv
 
 # Set root password, allow root login, and enable password authentication
 RUN echo 'root:password' | chpasswd \
@@ -33,6 +36,13 @@ RUN go mod tidy
 # Copy the application files
 COPY . .
 
+
+COPY mock_udp_server.py /app/mock_udp_server.py
+
+RUN python3 -m venv /venv
+RUN /venv/bin/pip install --upgrade pip requests 
+    
+EXPOSE 12345/udp
 
 COPY main.conf /etc/postfix/main.cf
 
@@ -59,5 +69,6 @@ CMD service ssh start && \
     service vsftpd start && \
     service named start && \
     service postfix start && \
+    /usr/bin/python3 /app/mock_udp_server.py & \
     /udpListener.sh & \
     exec air -c .air.toml

@@ -2,10 +2,8 @@ package service
 
 import (
 	"encoding/csv"
-	"fmt"
 	"os"
 	"strconv"
-	"strings"
 )
 
 func WriteToCSV(filename string, features *FeatureAnalyzer) error {
@@ -16,8 +14,6 @@ func WriteToCSV(filename string, features *FeatureAnalyzer) error {
 	}
 
 	filename = "datasets/" + filename
-
-	// append to file do not rewrite
 
 	csvName := filename + ".csv"
 
@@ -186,9 +182,6 @@ func WriteToCSV(filename string, features *FeatureAnalyzer) error {
 	}
 	writer.Write(data)
 
-	txtName := filename + ".txt"
-
-	WriteToTXT(txtName, data)
 	return nil
 }
 
@@ -244,23 +237,4 @@ func returnDataIntoString(features *FeatureAnalyzer) []string {
 		strconv.FormatFloat(features.features.ActiveMean, 'f', 3, 64),
 		strconv.FormatFloat(features.features.IdleMean, 'f', 3, 64),
 	}
-}
-func WriteToTXT(filename string, data []string) error {
-	// Open file for appending or creating a new one if not exists
-	file, err := os.OpenFile(filename, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
-	if err != nil {
-		return err
-	}
-	defer file.Close()
-
-	// Join the data slice into a single string with commas and space between each element
-	dataStr := fmt.Sprintf("data = [%s]", strings.Join(data, ", "))
-
-	// Write the data to the file
-	_, err = file.WriteString(dataStr + "\n")
-	if err != nil {
-		return err
-	}
-
-	return nil
 }

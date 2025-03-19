@@ -1,4 +1,5 @@
 import requests
+import time
 
 # URL of the target server
 target_ip = "172.30.0.2"
@@ -14,13 +15,12 @@ headers = {
     "Accept-Language": "en-US,en;q=0.9"
 }
 
-# Perform the GET request
-response = requests.get(target_url, headers=headers)
-
-# Print response headers and content
-print(f"Response Headers:\n{response.headers}\n")
-print(f"Response Content:\n{response.text}")
-
-# Save the response content to a file
-with open("response.html", "w") as file:
-    file.write(response.text)
+while True:
+    try:
+        print("Sending GET request to target server...")
+        response = requests.get(target_url, headers=headers, timeout=5)
+        print(f"Response Status Code: {response.status_code}")
+    except requests.exceptions.RequestException as e:
+        print(f"Request failed: {e}")
+    
+    time.sleep(12)  # Wait for 7 seconds before sending the next request

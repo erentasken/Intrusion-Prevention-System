@@ -32,47 +32,49 @@ target_ip = "172.30.0.2"  # Replace with your target IP
 target_port = 25  # SMTP port
 
 # Create a socket connection to the target
-sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+while True:
+    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
-try:
-    # Connect to the SMTP server
-    sock.connect((target_ip, target_port))
+    try:
+        # Connect to the SMTP server
+        sock.connect((target_ip, target_port))
 
-    # Read the server's greeting
-    sock.recv(1024)
+        print("Connected to the SMTP server")
+        # Read the server's greeting
+        sock.recv(1024)
 
-    # Send EHLO command
-    time.sleep(sleep1)
-    sock.sendall(b"EHLO localhost\r\n")
-    time.sleep(sleep2)
+        # Send EHLO command
+        time.sleep(sleep1)
+        sock.sendall(b"EHLO localhost\r\n")
+        time.sleep(sleep2)
 
-    # Send MAIL FROM command
-    sock.sendall(f"MAIL FROM:<{sender}>\r\n".encode())
-    time.sleep(sleep3)
+        # Send MAIL FROM command
+        sock.sendall(f"MAIL FROM:<{sender}>\r\n".encode())
+        time.sleep(sleep3)
 
-    # Send RCPT TO command
-    sock.sendall(f"RCPT TO:<{recipient}>\r\n".encode())
-    time.sleep(sleep4)
+        # Send RCPT TO command
+        sock.sendall(f"RCPT TO:<{recipient}>\r\n".encode())
+        time.sleep(sleep4)
 
-    # Send DATA command
-    sock.sendall(b"DATA\r\n")
-    time.sleep(sleep1)
+        # Send DATA command
+        sock.sendall(b"DATA\r\n")
+        time.sleep(sleep1)
 
-    # Send subject and body
-    sock.sendall(f"Subject: {email_subject}\r\n\r\n".encode())
-    sock.sendall(f"{email_body}\r\n".encode())
+        # Send subject and body
+        sock.sendall(f"Subject: {email_subject}\r\n\r\n".encode())
+        sock.sendall(f"{email_body}\r\n".encode())
 
-    # End the email data
-    sock.sendall(b".\r\n")
-    time.sleep(sleep2)
+        # End the email data
+        sock.sendall(b".\r\n")
+        time.sleep(sleep2)
 
-    # Close the session
-    sock.sendall(b"QUIT\r\n")
-    
-    # Receive final response
-    sock.recv(1024)
-
-finally:
-    sock.close()
+        # Close the session
+        sock.sendall(b"QUIT\r\n")
+        
+        # Receive final response
+        sock.recv(1024)
+    finally:
+        sock.close()
+    time.sleep(8)
 
 print("Email sent via telnet (SMTP) successfully.")

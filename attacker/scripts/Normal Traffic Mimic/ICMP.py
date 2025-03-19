@@ -24,6 +24,6 @@ while True:
     print(f"Executing: {NORMAL_ICMP_TRAFFIC[normal_index]}")
     subprocess.run(NORMAL_ICMP_TRAFFIC[normal_index], shell=True)
     
-    time.sleep(8)
+    time.sleep(6)
 
 print("Enhanced Normal ICMP Traffic Simulation Completed!")

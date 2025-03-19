@@ -57,7 +57,7 @@ try:
 
             # Random sleep between 1000 millisecond and 2000 millisecond
             time.sleep(random.randint(1, 2))
-        print("Session ends,")        
+        # print("Session ends,")        
 
         time.sleep(8)
         ssh_client.close()
@@ -69,3 +69,4 @@ except KeyboardInterrupt:
 
 finally:
     print("Operation halted.")
+    # pass

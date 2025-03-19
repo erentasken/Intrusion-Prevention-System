@@ -54,18 +54,18 @@ func (u *UDP) AnalyzeUDP(payload []byte) {
 	defer u.mutexLock.Unlock()
 
 	// AI PREDICTION
-	// var key string
+	var key string
 	var direction string
 	var featureAnalyzer *FeatureAnalyzer
 	var ok bool
 
 	if featureAnalyzer, ok = u.FeatureAnalyzer[forwardKey]; ok {
 		// AI PREDICTION
-		// key = forwardKey
+		key = forwardKey
 		direction = "forward"
 	} else if featureAnalyzer, ok = u.FeatureAnalyzer[backwardKey]; ok {
 		// AI PREDICTION
-		// key = backwardKey
+		key = backwardKey
 		direction = "backward"
 	} else {
 		u.FeatureAnalyzer[forwardKey] = GetFeatureAnalyzerInstanceUDP(&packetAnalysis, forwardKey, u.timeoutSignal)
@@ -75,21 +75,21 @@ func (u *UDP) AnalyzeUDP(payload []byte) {
 	featureAnalyzer.updateFeaturesUDP(&packetAnalysis, direction)
 
 	// AI PREDICTION
-	// if int(featureAnalyzer.features.FlowDuration/1e6)%7 == 6 {
-	// 	lastTS, exists := u.lastPredictionTS[key]
-	// 	now := time.Now()
+	if int(featureAnalyzer.features.FlowDuration/1e6)%7 == 6 {
+		lastTS, exists := u.lastPredictionTS[key]
+		now := time.Now()
 
-	// 	// Ensure at least 1 second has passed since the last prediction
-	// 	if !exists || now.Sub(lastTS) >= time.Second {
-	// 		fmt.Println("prediction for : ", key)
-	// 		u.lastPredictionTS[key] = now
-	// 		dataString := returnDataIntoString(featureAnalyzer)
-	// 		_, err := getPrediction(dataString)
-	// 		if err != nil {
-	// 			fmt.Println("Error getting prediction:", err)
-	// 		}
-	// 	}
-	// }
+		// Ensure at least 1 second has passed since the last prediction
+		if !exists || now.Sub(lastTS) >= time.Second {
+			fmt.Println("prediction for : ", key)
+			u.lastPredictionTS[key] = now
+			dataString := returnDataIntoString(featureAnalyzer)
+			_, err := getPrediction(dataString)
+			if err != nil {
+				fmt.Println("Error getting prediction:", err)
+			}
+		}
+	}
 }
 
 func (u *UDP) FlowMapTimeout() {
@@ -97,21 +97,27 @@ func (u *UDP) FlowMapTimeout() {
 	for {
 		select {
 		case key = <-u.timeoutSignal:
-			err := WriteToCSV("test", u.FeatureAnalyzer[key])
-			if err != nil {
-				fmt.Println("Error writing to CSV file: ", err)
-			}
 
-			fmt.Println("[ UDP ] Timeout signal received for key: ", key)
+			u.mutexLock.Lock()
 
-			// AI Prediction
-			// _, err = getPrediction(returnDataIntoString(u.FeatureAnalyzer[key]))
+			// err := WriteToCSV("udp_normal", u.FeatureAnalyzer[key])
 			// if err != nil {
-			// 	fmt.Println("Error getting prediction: ", err)
+			// 	fmt.Println("Error writing to CSV file: ", err)
 			// }
 
+			// fmt.Println("[ UDP ] Timeout signal received for key: ", key)
+
+			// AI Prediction
+			_, err := getPrediction(returnDataIntoString(u.FeatureAnalyzer[key]))
+			if err != nil {
+				fmt.Println("Error getting prediction: ", err)
+			}
+
 			delete(u.FeatureAnalyzer, key)
-		case <-time.After(10 * time.Second): // Prevent blocking forever
+
+			u.mutexLock.Unlock()
+
+		case <-time.After(5 * time.Second): // Prevent blocking forever
 			// PASS
 		}
 	}

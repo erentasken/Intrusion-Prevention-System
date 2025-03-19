@@ -55,21 +55,20 @@ func (t *TCP) AnalyzeTCP(payload []byte) {
 	defer t.mutexLock.Unlock()
 
 	// AI PREDICTION
-	// var key string
+	var key string
 	var direction string
 	var featureAnalyzer *FeatureAnalyzer
 	var ok bool
 
 	if featureAnalyzer, ok = t.FeatureAnalyzer[forwardKey]; ok {
 		// AI PREDICTION
-		// key = forwardKey
+		key = forwardKey
 		direction = "forward"
 	} else if featureAnalyzer, ok = t.FeatureAnalyzer[backwardKey]; ok {
 		// AI PREDICTION
-		// key = backwardKey
+		key = backwardKey
 		direction = "backward"
 	} else {
-		fmt.Println("[ TCP ] Creating new feature analyzer for key: ", forwardKey)
 		t.FeatureAnalyzer[forwardKey] = GetFeatureAnalyzerInstance(&packetAnalysis, forwardKey, t.timeoutSignal)
 		return
 	}
@@ -77,22 +76,22 @@ func (t *TCP) AnalyzeTCP(payload []byte) {
 	featureAnalyzer.updateFeatures(&packetAnalysis, direction)
 
 	// AI PREDICTION
-	// if int(featureAnalyzer.features.FlowDuration/1e6)%7 == 6 {
-	// 	lastTS, exists := t.lastPredictionTS[key]
-	// 	now := time.Now()
+	if int(featureAnalyzer.features.FlowDuration/1e6)%7 == 6 {
+		lastTS, exists := t.lastPredictionTS[key]
+		now := time.Now()
 
-	// 	// Ensure at least 1 second has passed since the last prediction
-	// 	if !exists || now.Sub(lastTS) >= time.Second {
-	// 		fmt.Println("precision for : ", key)
-	// 		t.lastPredictionTS[key] = now
-	// 		dataString := returnDataIntoString(featureAnalyzer)
-	// 		_, err := getPrediction(dataString)
-	// 		if err != nil {
-	// 			fmt.Println("Error getting prediction:", err)
-	// 		}
+		// Ensure at least 1 second has passed since the last prediction
+		if !exists || now.Sub(lastTS) >= time.Second {
+			fmt.Println("precision for : ", key)
+			t.lastPredictionTS[key] = now
+			dataString := returnDataIntoString(featureAnalyzer)
+			_, err := getPrediction(dataString)
+			if err != nil {
+				fmt.Println("Error getting prediction:", err)
+			}
 
-	// 	}
-	// }
+		}
+	}
 
 }
 
@@ -105,22 +104,23 @@ func (t *TCP) FlowMapTimeout() {
 
 			// normal := "tcp_features_normal"
 			// // attack := "tcp_features"
-
-			err := WriteToCSV("test", t.FeatureAnalyzer[key])
-			if err != nil {
-				fmt.Println("Error writing to CSV file: ", err)
-			}
-
-			fmt.Println("[ TCP ] Timeout signal received for key: ", key)
-
-			// AI Prediction
-			// _, err = getPrediction(returnDataIntoString(t.FeatureAnalyzer[key]))
+			t.mutexLock.Lock()
+			// err := WriteToCSV("tcp_normal", t.FeatureAnalyzer[key])
 			// if err != nil {
-			// 	fmt.Println("Error getting prediction: ", err)
+			// 	fmt.Println("Error writing to CSV file: ", err)
 			// }
 
+			// fmt.Println("[ TCP ] Timeout signal received for key: ", key)
+
+			// AI Prediction
+			_, err := getPrediction(returnDataIntoString(t.FeatureAnalyzer[key]))
+			if err != nil {
+				fmt.Println("Error getting prediction: ", err)
+			}
+
 			delete(t.FeatureAnalyzer, key)
-		case <-time.After(10 * time.Second): // Prevent blocking forever
+			t.mutexLock.Unlock()
+		case <-time.After(3 * time.Second): // Prevent blocking forever
 			// PASS
 		}
 	}

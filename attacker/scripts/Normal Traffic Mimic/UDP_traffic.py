@@ -41,4 +41,4 @@ while True:
     sock.sendto(query, (UDP_IP, UDP_PORT))
     
     print("sleeping...")
-    time.sleep(6)
+    time.sleep(12)
