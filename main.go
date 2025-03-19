@@ -17,48 +17,47 @@ import (
 )
 
 func main() {
-
-	// Print startup message
 	fmt.Println("Starting IPS System...")
 
 	// Load .env
-	err := godotenv.Load(".env")
-	if err != nil {
+	if err := godotenv.Load(".env"); err != nil {
 		fmt.Println("Error loading .env file:", err)
 		os.Exit(1)
 	}
 
+	// Prepare Netfilter queues
 	if err := iptables.PrepareNFQueues(); err != nil {
-		fmt.Println(err)
-		return
+		fmt.Println("Error preparing NFQueues:", err)
+		os.Exit(1)
 	}
 
-	// tcpService := service.NewTCP(redisWrapper)
+	// Initialize services
 	tcpService := service.NewTCP()
+	udpService := service.NewUDP()
+	icmp := service.NewICMP()
 
-	// // Load NFQUEUE numbers from environment variables
-	queueNames := []string{
-		// "ICMP_QUEUE",
-		"TCP_QUEUE",
-		"TCP_OUT_QUEUE",
-		// "UDP_QUEUE",
+	// Define queues and corresponding services
+	queues := map[string]func([]byte){
+		"TCP_QUEUE":  tcpService.AnalyzeTCP,
+		"UDP_QUEUE":  udpService.AnalyzeUDP,
+		"ICMP_QUEUE": icmp.AnalyzeICMP,
 	}
 
-	// icmpService := service.NewICMP(&redisWrapper)
-
-	for _, name := range queueNames {
-		queueNum, err := strconv.Atoi(os.Getenv(name))
+	// Start handlers for each queue
+	for envVar, handler := range queues {
+		queueNum, err := strconv.Atoi(os.Getenv(envVar))
 		if err != nil {
-			fmt.Printf("Invalid NFQUEUE number for %s: %v\n", name, err)
+			fmt.Printf("Invalid NFQUEUE number for %s: %v\n", envVar, err)
 			os.Exit(1)
 		}
-		go queueHandler(uint16(queueNum), tcpService)
+		go queueHandler(uint16(queueNum), handler)
 	}
 
+	// Keep the main routine alive
 	select {}
 }
 
-func queueHandler(queueNum uint16, tcpService *service.TCP) {
+func queueHandler(queueNum uint16, packetHandler func([]byte)) {
 	config := nfqueue.Config{
 		NfQueue:      queueNum,
 		MaxPacketLen: 0xFFFF,
@@ -69,79 +68,51 @@ func queueHandler(queueNum uint16, tcpService *service.TCP) {
 
 	nf, err := nfqueue.Open(&config)
 	if err != nil {
-		fmt.Println("could not open nfqueue socket:", err)
+		fmt.Printf("Could not open nfqueue socket for queue %d: %v\n", queueNum, err)
 		return
 	}
 	defer nf.Close()
 
 	if err := nf.SetOption(netlink.NoENOBUFS, true); err != nil {
-		fmt.Printf("failed to set netlink option %v: %v\n",
-			netlink.NoENOBUFS, err)
+		fmt.Printf("Failed to set netlink option for queue %d: %v\n", queueNum, err)
 		return
 	}
 
-	ctx, cancelFunc := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	// Graceful shutdown handling
 	go func() {
 		shutdownChan := make(chan os.Signal, 1)
 		signal.Notify(shutdownChan, os.Interrupt, syscall.SIGTERM)
 		<-shutdownChan
-
-		fmt.Println("shutting down gracefully...")
-		cancelFunc()
-
+		fmt.Println("Shutting down gracefully...")
+		cancel()
 	}()
 
+	// NFQUEUE packet processing function
 	fn := func(a nfqueue.Attribute) int {
-		id := *a.PacketID
-
-		tcpQueue, err := strconv.Atoi(os.Getenv("TCP_QUEUE"))
-
-		if err != nil {
-			fmt.Println("Invalid NFQUEUE number for TCP_SYN_QUEUE:", err)
+		if a.PacketID == nil || a.Payload == nil {
+			fmt.Println("Received invalid packet attributes")
 			return -1
 		}
 
-		if queueNum == uint16(tcpQueue) {
-			tcpService.AnalyzeTCP(*a.Payload)
-		}
+		packetHandler(*a.Payload)
 
-		tcpOutQueue, err := strconv.Atoi(os.Getenv("TCP_OUT_QUEUE"))
-		if err != nil {
-			fmt.Println("Invalid NFQUEUE number for TCP_SYN_QUEUE:", err)
-			return -1
-		}
-
-		if queueNum == uint16(tcpOutQueue) {
-			tcpService.AnalyzeTCP(*a.Payload)
-		}
-
-		// TODO UDP -> For dns queries etc.
-
-		// udpQueue, err := strconv.Atoi(os.Getenv("UDP_QUEUE"))
-		// if err != nil {
-		// 	fmt.Println("Invalid NFQUEUE number for UDP_QUEUE:", err)
-		// 	return -1
-		// }
-
-		// if queueNum == uint16(udpQueue) {
-		// 	tcpService.AnalyzeUDP(*a.Payload)
-		// }
-
-		nf.SetVerdict(id, nfqueue.NfAccept)
+		// Accept packet by default
+		nf.SetVerdict(*a.PacketID, nfqueue.NfAccept)
 		return 0
 	}
 
-	err = nf.RegisterWithErrorFunc(ctx, fn, func(e error) int {
-		fmt.Println(err)
+	// Register queue handler
+	if err := nf.RegisterWithErrorFunc(ctx, fn, func(e error) int {
+		fmt.Println("NFQUEUE error:", e)
 		return -1
-	})
-	if err != nil {
-		fmt.Println(err)
+	}); err != nil {
+		fmt.Println("Failed to register NFQUEUE handler:", err)
 		return
 	}
 
 	fmt.Printf("Listening on NFQueue [%d]...\n", queueNum)
-
 	<-ctx.Done()
-
 }

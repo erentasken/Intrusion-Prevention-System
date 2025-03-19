@@ -7,7 +7,7 @@ import tensorflow as tf
 from concurrent.futures import ThreadPoolExecutor
 
 # Define feature names
-feature_names = ['Flow Duration', 'Total Fwd Packets', 'Total Backward Packets',
+feature_names = ['Protocol', 'Flow Duration', 'Total Fwd Packets', 'Total Backward Packets',
                  'Total Length of Fwd Packets', 'Total Length of Bwd Packets',
                  'Fwd Packet Length Mean', 'Fwd Packet Length Std',
                  'Bwd Packet Length Mean', 'Bwd Packet Length Std', 'Flow Bytes/s',
@@ -59,7 +59,7 @@ def start_server():
     # Set up the server
     server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     server_socket.bind(('172.30.0.11', 50051))
-    server_socket.listen(5)  # Allow up to 5 queued connections
+    server_socket.listen(50)  # Allow up to 5 queued connections
     
     print("🔹 Server listening on port 50051...")
 

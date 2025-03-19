@@ -1,6 +1,8 @@
 package model
 
 type FlowFeatures struct {
+	Protocol uint64 `json:"Protocol"` // Protocol (e.g., 6 for TCP)
+
 	// Basic Flow Information
 	DestinationPort uint64  `json:"Destination Port"` // Destination port of the connection
 	FlowDuration    float64 `json:"Flow Duration"`    // Total duration of the flow in microseconds
@@ -43,11 +45,23 @@ type FlowFeatures struct {
 	ActiveMean float64 `json:"Active Mean"`
 	IdleMean   float64 `json:"Idle Mean"`
 
+	// TCP Control Flags
 	FlagFeatures *FlagFeatures
+
+	// ICMP Features
+	ICMPFeatures *ICMPFeatures
 
 	BulkTransferFeatures *BulkTransferFeatures
 
 	SubflowFeatures *SubflowFeatures
+}
+
+type ICMPFeatures struct {
+	// ICMP Features
+	// ICMP Type
+	ICMPType uint64 `json:"ICMP Type"`
+	// ICMP Code
+	ICMPCode uint64 `json:"ICMP Code"`
 }
 
 type BulkTransferFeatures struct {
@@ -120,6 +134,23 @@ type IPv4Info struct {
 	DestinationIP string
 }
 
+// Define a struct to represent the analysis of a TCP packet
+type PacketAnalysisTCP struct {
+	IPv4 *IPv4Info
+	TCP  *TCPInfo
+}
+
+// Define a struct to represent the analysis of a UDP packet
+type PacketAnalysisUDP struct {
+	IPv4 *IPv4Info
+	UDP  *UDPInfo
+}
+
+type PacketAnalysisICMP struct {
+	IPv4 *IPv4Info
+	ICMP *ICMPInfo
+}
+
 // Define a struct to represent TCP header information
 type TCPInfo struct {
 	SourcePort      uint64
@@ -136,8 +167,17 @@ type TCPInfo struct {
 	HeaderLength    uint64 // Length of the TCP header
 }
 
-// Define a struct to represent the analysis of a TCP packet
-type PacketAnalysisTCP struct {
-	IPv4 *IPv4Info
-	TCP  *TCPInfo
+// Define a struct to represent UDP header information
+type UDPInfo struct {
+	SourcePort      uint64
+	DestinationPort uint64
+	Length          uint64
+	Payload         []byte // Store UDP payload data
+}
+
+// Define a struct to represent ICMP header information
+type ICMPInfo struct {
+	Payload []byte
+	Type    uint64
+	Code    uint64
 }
