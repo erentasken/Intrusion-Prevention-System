@@ -1,7 +1,19 @@
-FROM golang:1.23
+FROM ubuntu:22.04
 
-# Install dependencies including required services
-RUN apt-get update && apt-get install -y \
+# # First install CA certificates and git
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ca-certificates \
+    git \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+
+# Set environment variables
+ENV DEBIAN_FRONTEND=noninteractive \
+    TZ=UTC \
+    PATH="/usr/local/go/bin:/root/go/bin:${PATH}"
+
+# Install runtime dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
     iptables \
     iputils-ping \
     openssh-server \
@@ -16,59 +28,57 @@ RUN apt-get update && apt-get install -y \
     hping3 \
     python3 \
     python3-pip \
-    python3-venv
+    python3-venv \
+    ca-certificates \
+    wget \
+    dumb-init \
+    libpcap-dev \
+    libpcre3-dev \
+    libnet1-dev \
+    zlib1g-dev \
+    libdumbnet-dev \
+    libhwloc-dev \
+    libluajit-5.1-dev \
+    libssl-dev \
+    liblzma-dev \
+    libmnl-dev \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
 
-# Set root password, allow root login, and enable password authentication
-RUN echo 'root:password' | chpasswd \
-    && sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config \
-    && echo "PasswordAuthentication yes" >> /etc/ssh/sshd_config
+# Install Go
+RUN wget https://go.dev/dl/go1.23.7.linux-amd64.tar.gz -O /tmp/go.tar.gz && \
+    tar -C /usr/local -xzf /tmp/go.tar.gz && \
+    rm /tmp/go.tar.gz
 
-# Install Go tools (optional, assuming you're using this in your project)
+# Install air
 RUN go install github.com/air-verse/air@latest
 
-# Set working directory
+# # Copy built artifacts from builder stage
+# COPY --from=builder /usr/local /usr/local
+
+# Configure system
+RUN echo 'root:password' | chpasswd && \
+    sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config && \
+    echo "PasswordAuthentication yes" >> /etc/ssh/sshd_config && \
+    python3 -m venv /venv && \
+    /venv/bin/pip install --no-cache-dir --upgrade pip requests
+
 WORKDIR /app
-
-# Copy Go modules
-COPY go.mod go.sum ./
-RUN go mod tidy
-
-# Copy the application files
 COPY . .
 
-
-COPY mock_udp_server.py /app/mock_udp_server.py
-
-RUN python3 -m venv /venv
-RUN /venv/bin/pip install --upgrade pip requests 
-    
-EXPOSE 12345/udp
-
-COPY main.conf /etc/postfix/main.cf
-
-# Build the Go application
+# Build Go application
 RUN go build -o inline-ips main.go
 
-# Expose necessary ports
-EXPOSE 22 80 21 53 25
+# Expose ports
+EXPOSE 22 80 21 53 25 12345/udp 161/udp
 
+# Entrypoint
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
 
-# Expose UDP port 161 for listening
-EXPOSE 161/udp
+RUN /app/install.sh
 
-RUN echo '#!/bin/bash\nwhile true; do \
-    RESPONSE="DNS Response: example.com A 93.184.216.34"\n\
-    echo -n "$RESPONSE" | nc -ul -p 161\n\
-    sleep 1\n\
-done' > /udpListener.sh && chmod +x /udpListener.sh
+ENTRYPOINT ["/usr/bin/dumb-init", "--"]
 
-
-# Start services manually and keep the container running
-CMD service ssh start && \
-    service apache2 start && \
-    service vsftpd start && \
-    service named start && \
-    service postfix start && \
-    /usr/bin/python3 /app/mock_udp_server.py & \
-    /udpListener.sh & \
-    exec air -c .air.toml
+# busy wait
+CMD ["/entrypoint.sh", "&&" ,"tail", "-f", "/dev/null"]

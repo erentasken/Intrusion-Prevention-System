@@ -93,7 +93,6 @@ func (t *TCP) AnalyzeTCP(payload []byte) {
 
 		}
 	}
-
 }
 
 func (t *TCP) FlowMapTimeout() {
@@ -101,10 +100,6 @@ func (t *TCP) FlowMapTimeout() {
 	for {
 		select {
 		case key = <-t.timeoutSignal:
-			// fmt.Println("Timeout signal received for key: ", key)
-
-			// normal := "tcp_features_normal"
-			// // attack := "tcp_features"
 			t.mutexLock.Lock()
 			// err := WriteToCSV("tcp_normal", t.FeatureAnalyzer[key])
 			// if err != nil {

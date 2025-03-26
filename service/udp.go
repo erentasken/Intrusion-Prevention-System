@@ -98,7 +98,6 @@ func (u *UDP) FlowMapTimeout() {
 	for {
 		select {
 		case key = <-u.timeoutSignal:
-
 			u.mutexLock.Lock()
 
 			// err := WriteToCSV("udp_normal", u.FeatureAnalyzer[key])

@@ -9,14 +9,11 @@ import (
 
 func getPrediction(dataString []string) (string, error) {
 	// Connect to the Python server over TCP
-	// fmt.Println("Connecting to server...")
 	conn, err := net.Dial("tcp", "172.30.0.11:50051")
 	if err != nil {
 		return "", fmt.Errorf("failed to connect to server: %v", err)
 	}
 	defer conn.Close()
-
-	// fmt.Println("connection successful")
 
 	// Serialize data using JSON
 	data, err := json.Marshal(dataString)
