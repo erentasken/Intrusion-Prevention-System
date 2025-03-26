@@ -53,6 +53,8 @@ func main() {
 		go queueHandler(uint16(queueNum), handler)
 	}
 
+	service.StartSnort()
+
 	// Keep the main routine alive
 	select {}
 }
@@ -114,5 +116,6 @@ func queueHandler(queueNum uint16, packetHandler func([]byte)) {
 	}
 
 	fmt.Printf("Listening on NFQueue [%d]...\n", queueNum)
+
 	<-ctx.Done()
 }

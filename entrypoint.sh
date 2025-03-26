@@ -10,7 +10,7 @@ service postfix start
 
 # Start background processes
 /usr/bin/python3 /app/mock_udp_server.py &
-/udpListener.sh &
+# /udpListener.sh &
 
 # Start main application
 exec air -c .air.toml
