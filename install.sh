@@ -94,3 +94,10 @@ else
     echo "Snort 3 installation failed!"
     exit 1
 fi
+
+
+# Move rules to snort 
+cp /app/SnortFiles/Rules/* /usr/local/etc/snort/rules/
+
+# Copy configuration file
+cp /app/SnortFiles/snort.lua /usr/local/etc/snort/snort.lua
