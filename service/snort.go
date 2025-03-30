@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"io"
+	"main/model"
 	"os"
 	"os/exec"
 	"os/signal"
@@ -12,7 +13,7 @@ import (
 	"syscall"
 )
 
-func StartSnort() {
+func StartSnort(alert chan<- model.Detection) {
 	// Use stdbuf to disable Snort's output buffering
 	cmd := exec.Command("stdbuf", "-oL", "-eL", "snort", "-c", "/usr/local/etc/snort/snort.lua", "-i", "eth0", "-A", "alert_fast", "-k", "none", "--daq-batch-size", "1")
 
@@ -39,9 +40,9 @@ func StartSnort() {
 	fmt.Println("Snort started with PID:", pid)
 
 	// Goroutine to print Snort's stdout after line 145
-	go printAfterLine("STDOUT", stdoutPipe, 315)
+	go printAfterLine("STDOUT", stdoutPipe, 315, alert)
 	// Goroutine to print Snort's stderr after line 145
-	go printAfterLine("STDERR", stderrPipe, 145)
+	go printAfterLine("STDERR", stderrPipe, 145, alert)
 
 	// Create a channel to listen for OS interrupt signals
 	sigChan := make(chan os.Signal, 1)
@@ -61,7 +62,7 @@ func StartSnort() {
 }
 
 // printAfterLine prints output after the given line threshold
-func printAfterLine(prefix string, pipe io.Reader, threshold int) {
+func printAfterLine(prefix string, pipe io.Reader, threshold int, alert chan<- model.Detection) {
 	scanner := bufio.NewScanner(pipe)
 	lineCount := 0
 	buffer := make([]string, 0, threshold) // Buffer to store the first 145 lines
@@ -76,26 +77,29 @@ func printAfterLine(prefix string, pipe io.Reader, threshold int) {
 			continue
 		}
 
-		re := regexp.MustCompile(`\[\*\*\] \[.*?\] "(.*?)" \[\*\*\].*?\{.*?\} (\d+\.\d+\.\d+\.\d+):(\d+) -> (\d+\.\d+\.\d+\.\d+):(\d+)`)
+		re := regexp.MustCompile(`\[\*\*\] \[.*?\] "(.*?)" \[\*\*\].*?\{(\w+)\} (\d+\.\d+\.\d+\.\d+):(\d+)(?: ->|,) (\d+\.\d+\.\d+\.\d+):(\d+)`)
 
 		// Find matches
 		matches := re.FindStringSubmatch(line)
 
-		if len(matches) > 5 {
+		if len(matches) >= 7 { // We now expect 7 groups (including protocol)
 			alertMessage := matches[1]
-			srcIP := matches[2]
-			srcPort := matches[3]
-			destIP := matches[4]
-			destPort := matches[5]
+			protocol := matches[2] // Protocol from between {}
+			srcIP := matches[3]
+			// srcPort := matches[4]
+			// destIP := matches[5]
+			destPort := matches[6]
 
-			// Print extracted information
-			fmt.Println("Alert Message:", alertMessage)
-			fmt.Println("Source IP:", srcIP)
-			fmt.Println("Source Port:", srcPort)
-			fmt.Println("Destination IP:", destIP)
-			fmt.Println("Destination Port:", destPort)
-		} else {
-			fmt.Println("No match found!")
+			if srcIP != "172.30.0.2" {
+				attack_alert := model.Detection{
+					Method:      "Rule Detection",
+					Protocol:    protocol,
+					Attacker_ip: srcIP,
+					Target_port: destPort,
+					Message:     alertMessage,
+				}
+				alert <- attack_alert
+			}
 		}
 	}
 

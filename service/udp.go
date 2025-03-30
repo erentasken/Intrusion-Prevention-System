@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"main/model"
 	"net"
+	"strings"
 	"sync"
 	"time"
 )
@@ -14,13 +15,15 @@ type UDP struct {
 	timeoutSignal    chan string
 	mutexLock        sync.Mutex
 	lastPredictionTS map[string]time.Time
+	alert            chan model.Detection
 }
 
-func NewUDP() *UDP {
+func NewUDP(alert chan model.Detection) *UDP {
 	udp := &UDP{
 		FeatureAnalyzer:  make(map[string]*FeatureAnalyzer),
 		timeoutSignal:    make(chan string),
 		lastPredictionTS: make(map[string]time.Time),
+		alert:            alert,
 	}
 
 	go udp.FlowMapTimeout()
@@ -47,8 +50,8 @@ func (u *UDP) AnalyzeUDP(payload []byte) {
 		return
 	}
 
-	forwardKey := fmt.Sprintf("%s-%s", packetAnalysis.IPv4.SourceIP, packetAnalysis.IPv4.DestinationIP)
-	backwardKey := fmt.Sprintf("%s-%s", packetAnalysis.IPv4.DestinationIP, packetAnalysis.IPv4.SourceIP)
+	forwardKey := fmt.Sprintf("%s-%s:%d", packetAnalysis.IPv4.SourceIP, packetAnalysis.IPv4.DestinationIP, packetAnalysis.UDP.DestinationPort)
+	backwardKey := fmt.Sprintf("%s-%s:%d", packetAnalysis.IPv4.DestinationIP, packetAnalysis.IPv4.SourceIP, packetAnalysis.UDP.SourcePort)
 
 	u.mutexLock.Lock()
 	defer u.mutexLock.Unlock()
@@ -75,7 +78,7 @@ func (u *UDP) AnalyzeUDP(payload []byte) {
 	featureAnalyzer.updateFeaturesUDP(&packetAnalysis, direction)
 
 	// AI PREDICTION
-	if int(featureAnalyzer.features.FlowDuration/1e6)%7 == 6 {
+	if int(featureAnalyzer.features.FlowDuration/1e6)%7 == 4 {
 		lastTS, exists := u.lastPredictionTS[key]
 		now := time.Now()
 
@@ -89,6 +92,21 @@ func (u *UDP) AnalyzeUDP(payload []byte) {
 			}
 
 			fmt.Println(key, " : ", pred)
+			splitted := strings.Split(key, "-")
+			attackerIp := splitted[0]
+			targetPort := strings.Split(splitted[1], ":")[1]
+
+			if strings.Count(pred, "1") >= 2 {
+				attack_alert := model.Detection{
+					Method:      "AI Detection",
+					Protocol:    "UDP",
+					Attacker_ip: attackerIp,
+					Target_port: targetPort,
+					Message:     "DDOS Attack Detected",
+				}
+
+				u.alert <- attack_alert
+			}
 		}
 	}
 }
@@ -114,6 +132,21 @@ func (u *UDP) FlowMapTimeout() {
 			}
 
 			fmt.Println(key, " : ", pred)
+			splitted := strings.Split(key, "-")
+			attackerIp := splitted[0]
+			targetPort := strings.Split(splitted[1], ":")[1]
+
+			if strings.Count(pred, "1") >= 2 {
+				attack_alert := model.Detection{
+					Method:      "AI Detection",
+					Protocol:    "UDP",
+					Attacker_ip: attackerIp,
+					Target_port: targetPort,
+					Message:     "DDOS Attack Detected",
+				}
+
+				u.alert <- attack_alert
+			}
 
 			delete(u.FeatureAnalyzer, key)
 

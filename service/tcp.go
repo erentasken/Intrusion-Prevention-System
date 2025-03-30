@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"main/model"
 	"net"
+	"strings"
 	"sync"
 	"time"
 )
@@ -14,14 +15,16 @@ type TCP struct {
 	timeoutSignal    chan string
 	mutexLock        sync.Mutex
 	lastPredictionTS map[string]time.Time
+	alert            chan<- model.Detection
 }
 
-func NewTCP() *TCP {
+func NewTCP(alert chan model.Detection) *TCP {
 
 	tcp := &TCP{
 		FeatureAnalyzer:  make(map[string]*FeatureAnalyzer),
 		timeoutSignal:    make(chan string),
 		lastPredictionTS: make(map[string]time.Time),
+		alert:            alert,
 	}
 
 	go tcp.FlowMapTimeout()
@@ -76,7 +79,7 @@ func (t *TCP) AnalyzeTCP(payload []byte) {
 	featureAnalyzer.updateFeatures(&packetAnalysis, direction)
 
 	// AI PREDICTION
-	if int(featureAnalyzer.features.FlowDuration/1e6)%7 == 6 {
+	if int(featureAnalyzer.features.FlowDuration/1e6)%7 == 4 {
 		lastTS, exists := t.lastPredictionTS[key]
 		now := time.Now()
 
@@ -90,6 +93,21 @@ func (t *TCP) AnalyzeTCP(payload []byte) {
 			}
 
 			fmt.Println(key, " : ", pred)
+			splitted := strings.Split(key, "-")
+			attackerIp := splitted[0]
+			targetPort := strings.Split(splitted[1], ":")[1]
+
+			if strings.Count(pred, "1") >= 2 {
+				attack_alert := model.Detection{
+					Method:      "AI Detection",
+					Protocol:    "TCP",
+					Attacker_ip: attackerIp,
+					Target_port: targetPort,
+					Message:     "DDOS Attack Detected",
+				}
+
+				t.alert <- attack_alert
+			}
 
 		}
 	}
@@ -115,6 +133,21 @@ func (t *TCP) FlowMapTimeout() {
 			}
 
 			fmt.Println(key, " : ", pred)
+			splitted := strings.Split(key, "-")
+			attackerIp := splitted[0]
+			targetPort := strings.Split(splitted[1], ":")[1]
+
+			if strings.Count(pred, "1") >= 2 {
+				attack_alert := model.Detection{
+					Method:      "AI Detection",
+					Protocol:    "TCP",
+					Attacker_ip: attackerIp,
+					Target_port: targetPort,
+					Message:     "DDOS Attack Detected",
+				}
+
+				t.alert <- attack_alert
+			}
 
 			delete(t.FeatureAnalyzer, key)
 			t.mutexLock.Unlock()

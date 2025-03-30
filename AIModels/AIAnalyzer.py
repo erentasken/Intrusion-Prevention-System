@@ -24,19 +24,17 @@ feature_names = ['Protocol', 'Flow Duration', 'Total Fwd Packets', 'Total Backwa
 def load_models_scaler():
     model_names = [
         'SVM', 'Random Forest', 'Logistic Regression',
-        'Gradient Boosting', 'XGBoost', 'K-Nearest Neighbors', 'Naïve Bayes'
+        'Gradient Boosting', 'XGBoost', 'KNN', 'Naïve Bayes'
     ]
     models = [joblib.load(f'./models/{model}.pkl') for model in model_names]
-    scaler = joblib.load('./models/scaler.pkl')
-    return models, scaler
+    return models
 
-def predict(features, models, scaler):
+def predict(features, models):
     features_reshaped = np.array(features).reshape(1, -1)
-    df_scaled = pd.DataFrame(scaler.transform(features_reshaped), columns=feature_names)
     
     # Use ThreadPoolExecutor to parallelize predictions
     with ThreadPoolExecutor(max_workers=len(models)) as executor:
-        predictions = list(executor.map(lambda model: int(model.predict(df_scaled)[0]), models))
+        predictions = list(executor.map(lambda model: int(model.predict(features_reshaped)[0]), models))
     
     return predictions
 
@@ -51,7 +49,7 @@ def predict_nn(features, model, scaler):
 # Start Socket Server
 def start_server():
     # Load models and scaler
-    models, scaler = load_models_scaler()
+    models = load_models_scaler()
 
     nn_model = tf.keras.models.load_model('./models/nn_model.h5')
     nn_scaler = joblib.load('./models/nn_scaler.pkl')
@@ -80,7 +78,7 @@ def start_server():
             features = [float(x) for x in features]
 
             # Get predictions from models
-            predictions = predict(features, models, scaler)
+            predictions = predict(features, models)
             nn_prediction = predict_nn(features, nn_model, nn_scaler)
 
             # Append the NN prediction

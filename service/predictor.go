@@ -46,7 +46,7 @@ func getPrediction(dataString []string) (string, error) {
 
 	model_names := []string{
 		"SVM", "Random Forest", "Logistic Regression",
-		"Gradient Boosting", "XGBoost", "K-Nearest Neighbors", "Naïve Bayes", "NN",
+		"Gradient Boosting", "XGBoost", "KNN", "Naïve Bayes", "NN",
 	}
 
 	var predictionString string
