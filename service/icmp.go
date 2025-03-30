@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"main/model"
 	"net"
+	"strings"
 	"sync"
 	"time"
 )
@@ -14,14 +15,16 @@ type ICMP struct {
 	timeoutSignal    chan string
 	mutexLock        sync.Mutex
 	lastPredictionTS map[string]time.Time
+	alert            chan model.Detection
 }
 
-func NewICMP() *ICMP {
+func NewICMP(alert chan model.Detection) *ICMP {
 
 	icmp := &ICMP{
 		FeatureAnalyzer:  make(map[string]*FeatureAnalyzer),
 		timeoutSignal:    make(chan string),
 		lastPredictionTS: make(map[string]time.Time),
+		alert:            alert,
 	}
 
 	go icmp.FlowMapTimeout()
@@ -77,7 +80,7 @@ func (i *ICMP) AnalyzeICMP(payload []byte) {
 
 	// AI PREDICTION :
 
-	if int(featureAnalyzer.features.FlowDuration/1e6)%7 == 6 {
+	if int(featureAnalyzer.features.FlowDuration/1e6)%7 == 4 {
 		lastTS, exists := i.lastPredictionTS[key]
 		now := time.Now()
 
@@ -90,6 +93,23 @@ func (i *ICMP) AnalyzeICMP(payload []byte) {
 				fmt.Println("Error getting prediction:", err)
 			}
 			fmt.Println(key, " : ", pred)
+
+			splitted := strings.Split(key, "-")
+			attackerIp := splitted[0]
+
+			count := strings.Count(pred, "1")
+
+			if count >= 2 {
+				attack_alert := model.Detection{
+					Method:      "AI Detection",
+					Protocol:    "ICMP",
+					Attacker_ip: attackerIp,
+					Target_port: "",
+					Message:     "DDOS Attack Detected",
+				}
+
+				i.alert <- attack_alert
+			}
 		}
 	}
 
@@ -116,6 +136,23 @@ func (i *ICMP) FlowMapTimeout() {
 			}
 
 			fmt.Println(key, " : ", pred)
+
+			splitted := strings.Split(key, "-")
+			attackerIp := splitted[0]
+
+			count := strings.Count(pred, "1")
+
+			if count >= 2 {
+				attack_alert := model.Detection{
+					Method:      "AI Detection",
+					Protocol:    "ICMP",
+					Attacker_ip: attackerIp,
+					Target_port: "",
+					Message:     "DDOS Attack Detected",
+				}
+
+				i.alert <- attack_alert
+			}
 
 			delete(i.FeatureAnalyzer, key)
 			i.mutexLock.Unlock()

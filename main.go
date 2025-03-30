@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"main/iptables"
+	"main/model"
 	"main/service"
 	"os"
 	"os/signal"
@@ -31,10 +32,12 @@ func main() {
 		os.Exit(1)
 	}
 
+	alert := make(chan model.Detection)
+
 	// Initialize services
-	tcpService := service.NewTCP()
-	udpService := service.NewUDP()
-	icmp := service.NewICMP()
+	tcpService := service.NewTCP(alert)
+	udpService := service.NewUDP(alert)
+	icmp := service.NewICMP(alert)
 
 	// Define queues and corresponding services
 	queues := map[string]func([]byte){
@@ -52,6 +55,10 @@ func main() {
 		}
 		go queueHandler(uint16(queueNum), handler)
 	}
+
+	go listenAttack(alert)
+
+	service.StartSnort(alert)
 
 	// Keep the main routine alive
 	select {}
@@ -114,5 +121,44 @@ func queueHandler(queueNum uint16, packetHandler func([]byte)) {
 	}
 
 	fmt.Printf("Listening on NFQueue [%d]...\n", queueNum)
+
 	<-ctx.Done()
+}
+
+func listenAttack(ch <-chan model.Detection) {
+	alertMap := make(map[string][]model.Detection)
+	ticker := time.NewTicker(4 * time.Second)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case alert := <-ch:
+			if alert.Method == "Rule Detection" {
+				alertMap[alert.Attacker_ip] = append(alertMap[alert.Attacker_ip], alert)
+			} else {
+				fmt.Println("\n===AI DETECTION===")
+				fmt.Println("Alert Message:", alert.Message)
+				fmt.Println("Protocol:", alert.Protocol)
+				fmt.Println("Attacker:", alert.Attacker_ip)
+				fmt.Println("Target Port:", alert.Target_port)
+			}
+
+		case <-ticker.C:
+			if len(alertMap) > 0 {
+				for ip, alerts := range alertMap {
+					fmt.Println("\n===RULE DETECTION===")
+					fmt.Printf("Attacker IP: %s\n", ip)
+
+					last := alerts[len(alerts)-1]
+
+					fmt.Println("Alert Message:", last.Message)
+					fmt.Println("Protocol:", last.Protocol)
+					fmt.Println("Attacker:", last.Attacker_ip)
+					fmt.Printf("Target Port:%s\n", last.Target_port)
+				}
+
+				alertMap = make(map[string][]model.Detection)
+			}
+		}
+	}
 }

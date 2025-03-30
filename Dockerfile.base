@@ -1,0 +1,79 @@
+# Snort 3 Base Image
+FROM ubuntu:22.04
+
+# Set environment variables
+ENV DEBIAN_FRONTEND=noninteractive TZ=UTC
+
+# Install dependencies
+RUN apt-get update && apt-get install -y \
+    libtool \
+    automake \
+    build-essential \
+    libpcap-dev \
+    libpcre3-dev \
+    libpcre2-dev \
+    libnet1-dev \
+    zlib1g-dev \
+    luajit \
+    hwloc \
+    libdnet-dev \
+    libdumbnet-dev \
+    bison \
+    flex \
+    liblzma-dev \
+    openssl \
+    libssl-dev \
+    pkg-config \
+    libhwloc-dev \
+    cmake \
+    cpputest \
+    libsqlite3-dev \
+    uuid-dev \
+    libcmocka-dev \
+    libnetfilter-queue-dev \
+    libmnl-dev \
+    autotools-dev \
+    libluajit-5.1-dev \
+    libunwind-dev \
+    libfl-dev \
+    git \
+    wget \
+    unzip \
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
+
+# Create and enter the Snort source directory
+RUN mkdir -p /root/snort_src && cd /root/snort_src && \
+    git clone https://github.com/snort3/libdaq.git && \
+    cd libdaq && \
+    ./bootstrap && \
+    ./configure && \
+    make -j$(nproc) && \
+    make install && \
+    cd .. && \
+    wget https://github.com/gperftools/gperftools/releases/download/gperftools-2.9.1/gperftools-2.9.1.tar.gz && \
+    tar xzf gperftools-2.9.1.tar.gz && \
+    cd gperftools-2.9.1 && \
+    ./configure && \
+    make -j$(nproc) && \
+    make install && \
+    cd .. && \
+    wget https://github.com/snort3/snort3/archive/refs/heads/master.zip && \
+    unzip master.zip && \
+    cd snort3-master && \
+    ./configure_cmake.sh --prefix=/usr/local --enable-tcmalloc && \
+    cd build && \
+    make -j$(nproc) && \
+    make install && \
+    ldconfig
+
+# create directoyr
+RUN mkdir -p /usr/local/etc/snort/rules/3.0.0.0
+
+# Copy the Snort configuration files
+COPY SnortFiles/snort.lua /usr/local/etc/snort/snort.lua
+
+# Copy the Snort rules
+COPY SnortFiles/Rules/3.0.0.0 /usr/local/etc/rules/3.0.0.0
+
+# Set default entrypoint to start Snort
+ENTRYPOINT ["/usr/local/bin/snort"]

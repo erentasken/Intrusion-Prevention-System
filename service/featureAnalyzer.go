@@ -56,10 +56,6 @@ func (f *FeatureAnalyzer) analyzerTimeoutChecks() {
 		f.subflowMutex.Unlock()
 		// check the timeout for the flow analysis
 		if time.Since(f.lastPacketTime) > 6*time.Second {
-			// set the active as false
-			// write to database
-			// remove from map
-
 			f.timeoutSignal <- f.forwardKey
 
 			break
