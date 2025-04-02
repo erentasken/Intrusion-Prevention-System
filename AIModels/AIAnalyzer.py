@@ -2,8 +2,10 @@ import json
 import socket
 import joblib
 import numpy as np
-import pandas as pd
 import tensorflow as tf
+import torch
+from NNModel import BinaryClassifier
+
 from concurrent.futures import ThreadPoolExecutor
 
 # Define feature names
@@ -38,21 +40,26 @@ def predict(features, models):
     
     return predictions
 
-def predict_nn(features, model, scaler):
-    data = np.array(features).reshape(1, -1)
-    data = scaler.transform(data)
 
-    predictions = model.predict(data)
+#     return int((predictions > 0.5).astype(int)[0, 0])  # Ensure a single integer output
 
-    return int((predictions > 0.5).astype(int)[0, 0])  # Ensure a single integer output
+def predict_nn(features, scaler, model):
+    new_data = np.array(features).reshape(1, -1)
+    new_data_scaled = scaler.transform(new_data)
+    with torch.no_grad():
+        prob = model(torch.FloatTensor(new_data_scaled))
+        prediction = (prob > 0.5).int()
+        return int(prediction), prob.item()
 
 # Start Socket Server
 def start_server():
     # Load models and scaler
     models = load_models_scaler()
 
-    nn_model = tf.keras.models.load_model('./models/nn_model.h5')
-    nn_scaler = joblib.load('./models/nn_scaler.pkl')
+    nnModel = BinaryClassifier(input_size=len(feature_names))
+    nnModel.load_state_dict(torch.load('./models/nn.pth'))
+    nnModel.eval()
+    nnScaler = joblib.load('./models/scaler.pkl')
 
     # Set up the server
     server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -79,7 +86,7 @@ def start_server():
 
             # Get predictions from models
             predictions = predict(features, models)
-            nn_prediction = predict_nn(features, nn_model, nn_scaler)
+            nn_prediction, prob = predict_nn(features, nnScaler, nnModel)
 
             # Append the NN prediction
             predictions.append(nn_prediction)
