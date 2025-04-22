@@ -140,31 +140,16 @@ services:
     container_name: golang-ips
     volumes:
       - .:/app
+      - /tmp/.X11-unix:/tmp/.X11-unix
     environment:
       - AIR_WATCH_DIR=/app
+      - DISPLAY=${DISPLAY}
+      - TMPDIR=/var/tmp
     networks:
       test-network:
         ipv4_address: 172.30.0.2
     privileged: true
     tty: true
-    # dns:
-    #   - 172.30.0.3  # The DNS server for this container
-  # dns-server:
-  #   image: technitium/dns-server:latest
-  #   container_name: dns-server
-  #   restart: unless-stopped
-  #   networks:
-  #     test-network:
-  #       ipv4_address: 172.30.0.3
-  #   ports:
-  #     - "53:53/udp"   # DNS Port
-  #     - "53:53/tcp"   # DNS Port
-  #     - "5380:5380"   # Web UI
-  #   environment:
-  #     - DNS_SERVER_FORWARDER=8.8.8.8,8.8.4.4
-  #   dns:
-  #     - 8.8.8.8
-  #     - 8.8.4.4
 
 
 networks:

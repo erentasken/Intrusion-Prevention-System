@@ -108,7 +108,9 @@ func (i *ICMP) AnalyzeICMP(payload []byte) {
 					Message:     "DDOS Attack Detected",
 				}
 
-				i.alert <- attack_alert
+				if attackerIp != "127.0.0.1" && attackerIp != "172.30.0.2" {
+					i.alert <- attack_alert
+				}
 			}
 		}
 	}
@@ -151,7 +153,9 @@ func (i *ICMP) FlowMapTimeout() {
 					Message:     "DDOS Attack Detected",
 				}
 
-				i.alert <- attack_alert
+				if attackerIp != "127.0.0.1" && attackerIp != "172.30.0.2" {
+					i.alert <- attack_alert
+				}
 			}
 
 			delete(i.FeatureAnalyzer, key)

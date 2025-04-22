@@ -45,13 +45,18 @@ func (u *UDP) AnalyzeUDP(payload []byte) {
 	switch version {
 	case 4:
 		u.analyzeIPv4ForUDP(payload, &packetAnalysis)
+
+		// if packetAnalysis.IPv4.SourceIP == "127.0.0.1" {
+		// 	return
+		// }
+
 	default:
 		fmt.Printf("[WARNING] Unsupported IP version %d\n", version)
 		return
 	}
 
-	forwardKey := fmt.Sprintf("%s-%s:%d", packetAnalysis.IPv4.SourceIP, packetAnalysis.IPv4.DestinationIP, packetAnalysis.UDP.DestinationPort)
-	backwardKey := fmt.Sprintf("%s-%s:%d", packetAnalysis.IPv4.DestinationIP, packetAnalysis.IPv4.SourceIP, packetAnalysis.UDP.SourcePort)
+	forwardKey := fmt.Sprintf("%s-%s", packetAnalysis.IPv4.SourceIP, packetAnalysis.IPv4.DestinationIP)
+	backwardKey := fmt.Sprintf("%s-%s", packetAnalysis.IPv4.DestinationIP, packetAnalysis.IPv4.SourceIP)
 
 	u.mutexLock.Lock()
 	defer u.mutexLock.Unlock()
@@ -75,6 +80,10 @@ func (u *UDP) AnalyzeUDP(payload []byte) {
 		return
 	}
 
+	if featureAnalyzer.port != fmt.Sprint(packetAnalysis.UDP.DestinationPort) {
+		featureAnalyzer.multiplePort = true
+	}
+
 	featureAnalyzer.updateFeaturesUDP(&packetAnalysis, direction)
 
 	// AI PREDICTION
@@ -94,15 +103,23 @@ func (u *UDP) AnalyzeUDP(payload []byte) {
 			fmt.Println(key, " : ", pred)
 			splitted := strings.Split(key, "-")
 			attackerIp := splitted[0]
-			targetPort := strings.Split(splitted[1], ":")[1]
+			// targetPort := strings.Split(splitted[1], ":")[1]
 
-			if strings.Count(pred, "1") >= 2 {
+			if strings.Count(pred, "1") >= 3 {
 				attack_alert := model.Detection{
 					Method:      "AI Detection",
 					Protocol:    "UDP",
 					Attacker_ip: attackerIp,
-					Target_port: targetPort,
+					Target_port: featureAnalyzer.port,
 					Message:     "DDOS Attack Detected",
+				}
+
+				if featureAnalyzer.multiplePort {
+					attack_alert.Message = "Targeted on multiple port"
+				}
+
+				if attackerIp == "127.0.0.1" || attackerIp == "172.30.0.2" {
+					return
 				}
 
 				u.alert <- attack_alert
@@ -134,18 +151,25 @@ func (u *UDP) FlowMapTimeout() {
 			fmt.Println(key, " : ", pred)
 			splitted := strings.Split(key, "-")
 			attackerIp := splitted[0]
-			targetPort := strings.Split(splitted[1], ":")[1]
+			// targetPort := strings.Split(splitted[1], ":")[1]
 
-			if strings.Count(pred, "1") >= 2 {
+			if strings.Count(pred, "1") >= 3 {
 				attack_alert := model.Detection{
 					Method:      "AI Detection",
 					Protocol:    "UDP",
 					Attacker_ip: attackerIp,
-					Target_port: targetPort,
+					Target_port: u.FeatureAnalyzer[key].port,
 					Message:     "DDOS Attack Detected",
 				}
 
-				u.alert <- attack_alert
+				if u.FeatureAnalyzer[key].multiplePort {
+					attack_alert.Message = "Targeted on multiple port"
+				}
+
+				if attackerIp != "127.0.0.1" && attackerIp != "172.30.0.2" {
+					u.alert <- attack_alert
+				}
+
 			}
 
 			delete(u.FeatureAnalyzer, key)

@@ -20,6 +20,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     python3-pip \
     python3-venv \
     dumb-init \
+    curl \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Install Go
@@ -50,7 +51,7 @@ WORKDIR /app
 COPY . .
 
 # Build Go application
-RUN go build -o inline-ips main.go
+# RUN go build -o inline-ips ips.go
 
 # Expose ports
 EXPOSE 22 80 21 53 25 12345/udp 161/udp
@@ -59,7 +60,32 @@ EXPOSE 22 80 21 53 25 12345/udp 161/udp
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
+RUN service ssh start \
+    service apache2 start \
+    service vsftpd start \ 
+    service named start \ 
+    service postfix start
+
 # RUN /app/install.sh
+
+
+RUN apt-get update && apt-get install -y \
+    x11-apps \
+    libxrender1 \
+    libxtst6 \
+    libxi6 \
+    libxext6 \
+    libgtk-3-dev \
+    pkg-config \
+    libwebkit2gtk-4.1-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Node.js and npm (LTS version)
+RUN curl -fsSL https://deb.nodesource.com/setup_lts.x | bash - && \
+    apt-get install -y nodejs
+
+# Install Wails CLI
+RUN go install github.com/wailsapp/wails/v2/cmd/wails@latest
 
 ENTRYPOINT ["/usr/bin/dumb-init", "--"]
 
