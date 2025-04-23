@@ -10,6 +10,8 @@ import (
 	"time"
 )
 
+var csvToggleIcmp = false
+
 type ICMP struct {
 	FeatureAnalyzer  map[string]*FeatureAnalyzer
 	timeoutSignal    chan string
@@ -30,6 +32,14 @@ func NewICMP(alert chan model.Detection) *ICMP {
 	go icmp.FlowMapTimeout()
 
 	return icmp
+}
+
+func CsvToggleICMP() {
+	if csvToggleIcmp {
+		csvToggleIcmp = false
+	} else {
+		csvToggleIcmp = true
+	}
 }
 
 func (i *ICMP) AnalyzeICMP(payload []byte) {
@@ -124,12 +134,13 @@ func (i *ICMP) FlowMapTimeout() {
 		case key = <-i.timeoutSignal:
 			// fmt.Println("Timeout signal received for key: ", key)
 			i.mutexLock.Lock()
-			// err := WriteToCSV("icmp_normal", i.FeatureAnalyzer[key])
-			// if err != nil {
-			// 	fmt.Println("Error writing to CSV file: ", err)
-			// }
 
-			// fmt.Println("[ ICMP ]Timeout signal received for key: ", key)
+			if csvToggleIcmp {
+				err := WriteToCSV("icmp", i.FeatureAnalyzer[key])
+				if err != nil {
+					fmt.Println("Error writing to CSV file: ", err)
+				}
+			}
 
 			// AI PREDICTION
 			pred, err := getPrediction(returnDataIntoString(i.FeatureAnalyzer[key]))

@@ -10,12 +10,15 @@ import (
 	"time"
 )
 
+var csvToggleTcp = false
+
 type TCP struct {
 	FeatureAnalyzer  map[string]*FeatureAnalyzer
 	timeoutSignal    chan string
 	mutexLock        sync.Mutex
 	lastPredictionTS map[string]time.Time
 	alert            chan<- model.Detection
+	csvToggle        bool
 }
 
 func NewTCP(alert chan model.Detection) *TCP {
@@ -25,11 +28,20 @@ func NewTCP(alert chan model.Detection) *TCP {
 		timeoutSignal:    make(chan string),
 		lastPredictionTS: make(map[string]time.Time),
 		alert:            alert,
+		csvToggle:        false,
 	}
 
 	go tcp.FlowMapTimeout()
 
 	return tcp
+}
+
+func CsvToggleTCP() {
+	if csvToggleTcp {
+		csvToggleTcp = false
+	} else {
+		csvToggleTcp = true
+	}
 }
 
 func (t *TCP) AnalyzeTCP(payload []byte) {
@@ -134,12 +146,13 @@ func (t *TCP) FlowMapTimeout() {
 		select {
 		case key = <-t.timeoutSignal:
 			t.mutexLock.Lock()
-			// err := WriteToCSV("tcp_normal", t.FeatureAnalyzer[key])
-			// if err != nil {
-			// 	fmt.Println("Error writing to CSV file: ", err)
-			// }
 
-			// fmt.Println("[ TCP ] Timeout signal received for key: ", key)
+			if csvToggleTcp {
+				err := WriteToCSV("tcp", t.FeatureAnalyzer[key])
+				if err != nil {
+					fmt.Println("Error writing to CSV file: ", err)
+				}
+			}
 
 			// AI Prediction
 			pred, err := getPrediction(returnDataIntoString(t.FeatureAnalyzer[key]))

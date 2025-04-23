@@ -18,7 +18,7 @@ import (
 )
 
 func StartSystem() {
-	// func main() {
+	time.Sleep(7 * time.Second)
 	fmt.Println("Starting IPS System...")
 
 	// Load .env

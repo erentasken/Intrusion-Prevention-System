@@ -1,48 +1,9 @@
-// package main
-
-// import (
-// 	"context"
-// 	"fmt"
-// 	"time"
-
-// 	"github.com/wailsapp/wails/v2/pkg/runtime"
-// )
-
-// // App struct
-// type App struct {
-// 	ctx context.Context
-// }
-
-// // NewApp creates a new App application struct
-// func NewApp() *App {
-// 	return &App{}
-// }
-
-// // startup is called when the app starts. The context is saved
-// // so we can call the runtime methods
-// func (a *App) startup(ctx context.Context) {
-// 	a.ctx = ctx
-
-// 	go func() {
-// 		counter := 0
-// 		for {
-// 			time.Sleep(2 * time.Second)
-// 			runtime.EventsEmit(a.ctx, "alert", counter)
-// 			counter++
-// 		}
-// 	}()
-// }
-
-// // Greet returns a greeting for the given name
-// func (a *App) Greet(name string) string {
-// 	return fmt.Sprintf("Hello %s, It's show time!", name)
-// }
-
 package main
 
 import (
 	"context"
 	"fmt"
+	"main/service"
 
 	"github.com/wailsapp/wails/v2/pkg/runtime"
 )
@@ -64,6 +25,24 @@ func NewApp() *App {
 // startup is called when the app starts
 func (a *App) startup(ctx context.Context) {
 	a.ctx = ctx
+
+	runtime.EventsOn(ctx, "csv", func(args ...interface{}) {
+		if len(args) > 0 {
+			if str, ok := args[0].(string); ok {
+				if str == "icmp" {
+					fmt.Println("ICMP!!!!")
+					service.CsvToggleICMP()
+				} else if str == "tcp" {
+					fmt.Println("TCP!!!!!")
+					// tcp csv toggle
+					service.CsvToggleTCP()
+				} else if str == "udp" {
+					fmt.Println("UDP!!!!!")
+					service.CsvToggleUDP()
+				}
+			}
+		}
+	})
 }
 
 // Greet returns a greeting for the given name

@@ -10,6 +10,8 @@ import (
 	"time"
 )
 
+var csvToggleUdp = false
+
 type UDP struct {
 	FeatureAnalyzer  map[string]*FeatureAnalyzer
 	timeoutSignal    chan string
@@ -29,6 +31,14 @@ func NewUDP(alert chan model.Detection) *UDP {
 	go udp.FlowMapTimeout()
 
 	return udp
+}
+
+func CsvToggleUDP() {
+	if csvToggleUdp {
+		csvToggleUdp = false
+	} else {
+		csvToggleUdp = true
+	}
 }
 
 func (u *UDP) AnalyzeUDP(payload []byte) {
@@ -135,10 +145,12 @@ func (u *UDP) FlowMapTimeout() {
 		case key = <-u.timeoutSignal:
 			u.mutexLock.Lock()
 
-			// err := WriteToCSV("udp_normal", u.FeatureAnalyzer[key])
-			// if err != nil {
-			// 	fmt.Println("Error writing to CSV file: ", err)
-			// }
+			if csvToggleUdp {
+				err := WriteToCSV("udp", u.FeatureAnalyzer[key])
+				if err != nil {
+					fmt.Println("Error writing to CSV file: ", err)
+				}
+			}
 
 			// fmt.Println("[ UDP ] Timeout signal received for key: ", key)
 
