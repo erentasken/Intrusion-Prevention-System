@@ -47,8 +47,6 @@ func (a *App) startup(ctx context.Context) {
 	})
 
 	runtime.EventsOn(ctx, "unblock", func(args ...interface{}) {
-		fmt.Println("hello")
-		fmt.Println(args)
 		if len(args) > 0 {
 			if ip, ok := args[0].(string); ok {
 				if idx := slices.Index(blockedIPs, ip); idx != -1 { 
@@ -56,6 +54,20 @@ func (a *App) startup(ctx context.Context) {
 					blockedIPs = append(blockedIPs[:idx], blockedIPs[idx+1:]...)
 					fmt.Println(blockedIPs)
 					iptables.UnblockIP(ip)
+				}
+			}
+		}
+	})
+
+
+	runtime.EventsOn(ctx, "avoidBlocking", func(args ...interface{}){
+		fmt.Println("avoid blocking: ", args)
+		if len(args) > 0 { 
+			if avoid, ok := args[0].(string); ok{ 
+				if avoid == "true"{ 
+					iptables.AvoidBlocking = true
+				}else if avoid == "false"{ 
+					iptables.AvoidBlocking = false
 				}
 			}
 		}

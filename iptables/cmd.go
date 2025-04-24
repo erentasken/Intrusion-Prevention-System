@@ -4,9 +4,12 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"slices"
 
 	"github.com/joho/godotenv"
 )
+
+var AvoidBlocking = false
 
 func runCommand(cmd string, args ...string) error {
 	command := exec.Command(cmd, args...)
@@ -89,9 +92,13 @@ func PrepareNFQueues() error {
 	return nil
 }
 
+var blockedIPs []string
+
 // BlockIP inserts DROP rules in INPUT, OUTPUT, and FORWARD chains to block all traffic to/from a specific IP
-func BlockIP(ip string) error {
-	fmt.Printf("[*] Blocking IP: %s\n", ip)
+func BlockIP(ip string) int {
+	if AvoidBlocking || slices.Contains(blockedIPs, ip) { 
+		return -1;
+	}
 
 	blockRules := [][]string{
 		{"iptables", "-I", "INPUT", "1", "-s", ip, "-j", "DROP"},
@@ -102,12 +109,15 @@ func BlockIP(ip string) error {
 
 	for _, rule := range blockRules {
 		if err := runCommand(rule[0], rule[1:]...); err != nil {
-			return fmt.Errorf("[ERROR] Failed to block IP %s: %v", ip, err)
+			return -1
 		}
 	}
 
 	fmt.Printf("[✔] IP %s blocked successfully.\n", ip)
-	return nil
+	
+	blockedIPs = append(blockedIPs, ip)
+
+	return 0
 }
 
 // UnblockIP deletes any DROP rules for a specific IP in INPUT, OUTPUT, and FORWARD chains
@@ -128,5 +138,10 @@ func UnblockIP(ip string) error {
 	}
 
 	fmt.Printf("[✔] IP %s unblocked successfully.\n", ip)
+	
+	if idx := slices.Index(blockedIPs, ip); idx != -1 { 
+		blockedIPs = append(blockedIPs[:idx], blockedIPs[idx+1:]...)
+	}
+
 	return nil
 }

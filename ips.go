@@ -147,12 +147,9 @@ func listenAttack(ch <-chan model.Detection) {
 				// fmt.Println("Target Port:", alert.Target_port)
 				EmitAlert(alert)
 
-				iptables.BlockIP(alert.Attacker_ip)
-
-				EmitBlockIP(alert.Attacker_ip)
-
-				fmt.Println(alert.Attacker_ip, " is blocked")
-				
+				if ok := iptables.BlockIP(alert.Attacker_ip); ok != -1 { 
+					EmitBlockIP(alert.Attacker_ip)
+				}
 			}
 
 		case <-ticker.C:
@@ -171,13 +168,13 @@ func listenAttack(ch <-chan model.Detection) {
 					// fmt.Printf("Target Port:%s\n", last.Target_port)
 
 					last := alerts[len(alerts)-1]
-
+					
 					EmitAlert(last)
-
-					EmitBlockIP(last.Attacker_ip)
-
-					iptables.BlockIP(last.Attacker_ip)
-					fmt.Println(last.Attacker_ip, " is blocked")
+					
+					if ok := iptables.BlockIP(last.Attacker_ip); ok != -1 { 
+						EmitBlockIP(last.Attacker_ip)
+					}
+					// fmt.Println(last.Attacker_ip, " is blocked")
 
 				}
 
