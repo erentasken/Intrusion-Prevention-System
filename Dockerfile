@@ -35,7 +35,7 @@ ENV DEBIAN_FRONTEND=noninteractive \
     PATH="/usr/local/go/bin:/root/go/bin:${PATH}"
 
 # Install air
-RUN go install github.com/air-verse/air@latest
+# RUN go install github.com/air-verse/air@latest
 
 # Configure system
 RUN echo 'root:password' | chpasswd && \

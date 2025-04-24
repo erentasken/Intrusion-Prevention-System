@@ -102,7 +102,6 @@ func (i *ICMP) AnalyzeICMP(payload []byte) {
 			if err != nil {
 				fmt.Println("Error getting prediction:", err)
 			}
-			fmt.Println(key, " : ", pred)
 
 			splitted := strings.Split(key, "-")
 			attackerIp := splitted[0]

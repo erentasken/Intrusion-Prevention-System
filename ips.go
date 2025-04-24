@@ -146,6 +146,13 @@ func listenAttack(ch <-chan model.Detection) {
 				// fmt.Println("Attacker:", alert.Attacker_ip)
 				// fmt.Println("Target Port:", alert.Target_port)
 				EmitAlert(alert)
+
+				iptables.BlockIP(alert.Attacker_ip)
+
+				EmitBlockIP(alert.Attacker_ip)
+
+				fmt.Println(alert.Attacker_ip, " is blocked")
+				
 			}
 
 		case <-ticker.C:
@@ -157,15 +164,21 @@ func listenAttack(ch <-chan model.Detection) {
 
 					fmt.Println("\n===RULE DETECTION===")
 					// fmt.Printf("Attacker IP: %s\n", ip)
-
-					last := alerts[len(alerts)-1]
-
 					// fmt.Println("method : ", last.Method)
 					// fmt.Println("Alert Message:", last.Message)
 					// fmt.Println("Protocol:", last.Protocol)
 					// fmt.Println("Attacker:", last.Attacker_ip)
 					// fmt.Printf("Target Port:%s\n", last.Target_port)
+
+					last := alerts[len(alerts)-1]
+
 					EmitAlert(last)
+
+					EmitBlockIP(last.Attacker_ip)
+
+					iptables.BlockIP(last.Attacker_ip)
+					fmt.Println(last.Attacker_ip, " is blocked")
+
 				}
 
 				alertMap = make(map[string][]model.Detection)

@@ -88,3 +88,45 @@ func PrepareNFQueues() error {
 	fmt.Println("[✔] iptables rules saved successfully.")
 	return nil
 }
+
+// BlockIP inserts DROP rules in INPUT, OUTPUT, and FORWARD chains to block all traffic to/from a specific IP
+func BlockIP(ip string) error {
+	fmt.Printf("[*] Blocking IP: %s\n", ip)
+
+	blockRules := [][]string{
+		{"iptables", "-I", "INPUT", "1", "-s", ip, "-j", "DROP"},
+		{"iptables", "-I", "OUTPUT", "1", "-d", ip, "-j", "DROP"},
+		{"iptables", "-I", "FORWARD", "1", "-s", ip, "-j", "DROP"},
+		{"iptables", "-I", "FORWARD", "1", "-d", ip, "-j", "DROP"},
+	}
+
+	for _, rule := range blockRules {
+		if err := runCommand(rule[0], rule[1:]...); err != nil {
+			return fmt.Errorf("[ERROR] Failed to block IP %s: %v", ip, err)
+		}
+	}
+
+	fmt.Printf("[✔] IP %s blocked successfully.\n", ip)
+	return nil
+}
+
+// UnblockIP deletes any DROP rules for a specific IP in INPUT, OUTPUT, and FORWARD chains
+func UnblockIP(ip string) error {
+	fmt.Printf("[*] Unblocking IP: %s\n", ip)
+
+	unblockRules := [][]string{
+		{"iptables", "-D", "INPUT", "-s", ip, "-j", "DROP"},
+		{"iptables", "-D", "OUTPUT", "-d", ip, "-j", "DROP"},
+		{"iptables", "-D", "FORWARD", "-s", ip, "-j", "DROP"},
+		{"iptables", "-D", "FORWARD", "-d", ip, "-j", "DROP"},
+	}
+
+	for _, rule := range unblockRules {
+		if err := runCommand(rule[0], rule[1:]...); err != nil {
+			fmt.Printf("[WARNING] Could not delete rule: %v (possibly already removed)\n", rule)
+		}
+	}
+
+	fmt.Printf("[✔] IP %s unblocked successfully.\n", ip)
+	return nil
+}
