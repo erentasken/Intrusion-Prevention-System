@@ -44,3 +44,58 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Ignore dataset and build artifacts
+/datasets
+/build
+/build/bin
+
+# Ignore only top-level node_modules, not frontend files
+/node_modules
+
+# Ignore only generated frontend build outputs
+/frontend/.next
+/frontend/out
+/frontend/node_modules
+/frontend/dist
+
+# Don't ignore essential frontend files
+!frontend/package.json
+!frontend/package-lock.json
+!frontend/tsconfig.json
+!frontend/next.config.ts
+!frontend/postcss.config.mjs
+!frontend/components.json
+!frontend/public/
+!frontend/app/
+!frontend/components/
+!frontend/lib/
+!frontend/wails.json
+!frontend/README.md
+
+# Misc OS and tool files
+.DS_Store
+*.pem
+
+# Debug logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# Environment variables
+.env*
+
+# Yarn and PnP
+/.pnp
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/versions
+
+# Vercel and Next.js
+.vercel
+*.tsbuildinfo
+
