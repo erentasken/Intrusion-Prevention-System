@@ -99,7 +99,7 @@ func (t *TCP) AnalyzeTCP(payload []byte) {
 	featureAnalyzer.updateFeatures(&packetAnalysis, direction)
 
 	// AI PREDICTION
-	if int(featureAnalyzer.features.FlowDuration/1e6)%7 == 4 {
+	if int(featureAnalyzer.features.FlowDuration/1e6)%4 == 1 {
 		lastTS, exists := t.lastPredictionTS[key]
 		now := time.Now()
 

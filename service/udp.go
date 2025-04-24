@@ -97,7 +97,7 @@ func (u *UDP) AnalyzeUDP(payload []byte) {
 	featureAnalyzer.updateFeaturesUDP(&packetAnalysis, direction)
 
 	// AI PREDICTION
-	if int(featureAnalyzer.features.FlowDuration/1e6)%7 == 4 {
+	if int(featureAnalyzer.features.FlowDuration/1e6)%4 == 1 {
 		lastTS, exists := u.lastPredictionTS[key]
 		now := time.Now()
 

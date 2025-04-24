@@ -20,12 +20,12 @@ service postfix start
 # exec air -c .air.toml
 
 
-# echo "nameserver 0.0.0.0" > /etc/resolv.conf
+echo "nameserver 0.0.0.0" > /etc/resolv.conf
 
-# ping -c 5 google.com
+ping -c 5 google.com
 
-# cd /app
+cd /app
 
-# wails dev -tags webkit2_41
+wails dev -tags webkit2_41
 
 tail -f /dev/null

@@ -1,4 +1,4 @@
-version: '3.8'
+version: "3.8"
 
 services:
   attacker:
@@ -15,36 +15,36 @@ services:
       - TARGET_IP=172.30.0.2
     depends_on:
       - golang-ips
-    
-  # attacker1:
-  #   build: ./attacker
-  #   volumes:
-  #     - ./attacker/scripts:/attacker_files
-  #   container_name: attacker-container1
-  #   networks:
-  #     test-network:
-  #       ipv4_address: 172.30.0.8
-  #   privileged: true
-  #   tty: true
-  #   environment:
-  #     - TARGET_IP=172.30.0.2
-  #   depends_on:
-  #     - golang-ips
 
-  # attacker2:
-  #   build: ./attacker
-  #   volumes:
-  #     - ./attacker/scripts:/attacker_files
-  #   container_name: attacker-container2
-  #   networks:
-  #     test-network:
-  #       ipv4_address: 172.30.0.9
-  #   privileged: true
-  #   tty: true
-  #   environment:
-  #     - TARGET_IP=172.30.0.2
-  #   depends_on:
-  #     - golang-ips
+  attacker1:
+    build: ./attacker
+    volumes:
+      - ./attacker/scripts:/attacker_files
+    container_name: attacker-container1
+    networks:
+      test-network:
+        ipv4_address: 172.30.0.8
+    privileged: true
+    tty: true
+    environment:
+      - TARGET_IP=172.30.0.2
+    depends_on:
+      - golang-ips
+
+  attacker2:
+    build: ./attacker
+    volumes:
+      - ./attacker/scripts:/attacker_files
+    container_name: attacker-container2
+    networks:
+      test-network:
+        ipv4_address: 172.30.0.9
+    privileged: true
+    tty: true
+    environment:
+      - TARGET_IP=172.30.0.2
+    depends_on:
+      - golang-ips
 
   # attacker3:
   #   build: ./attacker
@@ -119,10 +119,10 @@ services:
   #     - TARGET_IP=172.30.0.2
   #   depends_on:
   #     - golang-ips
-  
+
   python-server:
     build:
-      context: ./AIModels  # Directory containing your Python server code
+      context: ./AIModels # Directory containing your Python server code
     container_name: python-server-container
     networks:
       test-network:
@@ -130,11 +130,10 @@ services:
     volumes:
       - ./AIModels:/app
     depends_on:
-      - golang-ips  # Ensures Golang service is up before the Python server starts
+      - golang-ips # Ensures Golang service is up before the Python server starts
     privileged: true
     tty: true
 
-      
   golang-ips:
     build: .
     container_name: golang-ips
@@ -150,7 +149,6 @@ services:
         ipv4_address: 172.30.0.2
     privileged: true
     tty: true
-
 
 networks:
   test-network:
