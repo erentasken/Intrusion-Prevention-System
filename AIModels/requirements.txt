@@ -3,4 +3,3 @@ numpy
 joblib
 xgboost
 tensorflow
-torch

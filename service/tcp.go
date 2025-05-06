@@ -18,7 +18,6 @@ type TCP struct {
 	mutexLock        sync.Mutex
 	lastPredictionTS map[string]time.Time
 	alert            chan<- model.Detection
-	csvToggle        bool
 }
 
 func NewTCP(alert chan model.Detection) *TCP {
@@ -28,7 +27,6 @@ func NewTCP(alert chan model.Detection) *TCP {
 		timeoutSignal:    make(chan string),
 		lastPredictionTS: make(map[string]time.Time),
 		alert:            alert,
-		csvToggle:        false,
 	}
 
 	go tcp.FlowMapTimeout()
@@ -57,10 +55,6 @@ func (t *TCP) AnalyzeTCP(payload []byte) {
 
 	switch version {
 	case 4:
-		// if packetAnalysis.IPv4.SourceIP == "127.0.0.1" {
-		// 	return
-		// }
-
 		t.analyzeIPv4(payload, &packetAnalysis)
 	default:
 		fmt.Printf("[WARNING] Unsupported IP version %d\n", version)
@@ -115,7 +109,6 @@ func (t *TCP) AnalyzeTCP(payload []byte) {
 			fmt.Println(key, " : ", pred)
 			splitted := strings.Split(key, "-")
 			attackerIp := splitted[0]
-			// targetPort := strings.Split(splitted[1], ":")[1]
 
 			if strings.Count(pred, "1") >= 3 {
 				attack_alert := model.Detection{
@@ -207,10 +200,10 @@ func (t *TCP) analyzeIPv4(payload []byte, packetAnalysis *model.PacketAnalysisTC
 	}
 
 	tcpStart := ihl
-	t.analyzeTCPHeader(payload[tcpStart:], packetAnalysis)
+	t.analyzeHeader(payload[tcpStart:], packetAnalysis)
 }
 
-func (t *TCP) analyzeTCPHeader(payload []byte, packetAnalysis *model.PacketAnalysisTCP) {
+func (t *TCP) analyzeHeader(payload []byte, packetAnalysis *model.PacketAnalysisTCP) {
 	if len(payload) < 20 { // Ensure that there is enough data for the TCP header
 		fmt.Println("[ERROR] Invalid TCP header length")
 		return

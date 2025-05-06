@@ -46,29 +46,36 @@ while True:
         # Send EHLO command
         time.sleep(sleep1)
         sock.sendall(b"EHLO localhost\r\n")
+        print("Send EHLO command")
         time.sleep(sleep2)
 
         # Send MAIL FROM command
         sock.sendall(f"MAIL FROM:<{sender}>\r\n".encode())
+        print("Send mail from command")
         time.sleep(sleep3)
 
         # Send RCPT TO command
         sock.sendall(f"RCPT TO:<{recipient}>\r\n".encode())
+        print("Send RCPT TO command")
         time.sleep(sleep4)
 
         # Send DATA command
         sock.sendall(b"DATA\r\n")
+        print("Send data command")
         time.sleep(sleep1)
 
         # Send subject and body
         sock.sendall(f"Subject: {email_subject}\r\n\r\n".encode())
         sock.sendall(f"{email_body}\r\n".encode())
+        print("Send subject and body")
 
         # End the email data
         sock.sendall(b".\r\n")
+        print("End the email data")
         time.sleep(sleep2)
 
         # Close the session
+        print("Close the session")
         sock.sendall(b"QUIT\r\n")
         
         # Receive final response

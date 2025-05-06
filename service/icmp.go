@@ -99,29 +99,6 @@ func (i *ICMP) AnalyzeICMP(payload []byte) {
 			dataString := returnDataIntoString(featureAnalyzer)
 
 			i.PredictAndAlert(dataString, key)
-			// pred, err := getPrediction(dataString)
-			// if err != nil {
-			// 	fmt.Println("Error getting prediction:", err)
-			// }
-
-			// splitted := strings.Split(key, "-")
-			// attackerIp := splitted[0]
-
-			// count := strings.Count(pred, "1")
-
-			// if count >= 2 {
-			// 	attack_alert := model.Detection{
-			// 		Method:      "AI Detection",
-			// 		Protocol:    "ICMP",
-			// 		Attacker_ip: attackerIp,
-			// 		Target_port: "",
-			// 		Message:     "DDOS Attack Detected",
-			// 	}
-
-			// 	if attackerIp != "127.0.0.1" && attackerIp != "172.30.0.2" && attackerIp != "127.0.0.11" {
-			// 		i.alert <- attack_alert
-			// 	}
-			// }
 		}
 	}
 
@@ -172,33 +149,6 @@ func (i *ICMP) FlowMapTimeout() {
 
 			i.PredictAndAlert(dataString, key)
 
-			// AI PREDICTION
-			// pred, err := getPrediction(returnDataIntoString(i.FeatureAnalyzer[key]))
-			// if err != nil {
-			// 	fmt.Println("Error getting prediction: ", err)
-			// }
-
-			// fmt.Println(key, " : ", pred)
-
-			// splitted := strings.Split(key, "-")
-			// attackerIp := splitted[0]
-
-			// count := strings.Count(pred, "1")
-
-			// if count >= 2 {
-			// 	attack_alert := model.Detection{
-			// 		Method:      "AI Detection",
-			// 		Protocol:    "ICMP",
-			// 		Attacker_ip: attackerIp,
-			// 		Target_port: "",
-			// 		Message:     "DDOS Attack Detected",
-			// 	}
-
-			// 	if attackerIp != "127.0.0.1" && attackerIp != "127.0.0.11" && attackerIp != "172.30.0.2" {
-			// 		i.alert <- attack_alert
-			// 	}
-			// }
-
 			delete(i.FeatureAnalyzer, key)
 			i.mutexLock.Unlock()
 		case <-time.After(10 * time.Second): // Prevent blocking forever
@@ -221,10 +171,10 @@ func (i *ICMP) analyzeIPv4(payload []byte, packetAnalysis *model.PacketAnalysisI
 		DestinationIP: net.IP(payload[16:20]).String(),
 	}
 
-	i.analyzeICMPHeader(payload[ihl:], packetAnalysis)
+	i.analyzeHeader(payload[ihl:], packetAnalysis)
 }
 
-func (i *ICMP) analyzeICMPHeader(payload []byte, packetAnalysis *model.PacketAnalysisICMP) {
+func (i *ICMP) analyzeHeader(payload []byte, packetAnalysis *model.PacketAnalysisICMP) {
 	if len(payload) < 4 { // Ensure there is enough data for the ICMP header
 		fmt.Println("[ERROR] Invalid ICMP header length")
 		return

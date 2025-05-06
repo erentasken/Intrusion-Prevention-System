@@ -141,10 +141,7 @@ func listenAttack(ch <-chan model.Detection) {
 				alertMap[alert.Attacker_ip] = append(alertMap[alert.Attacker_ip], alert)
 			} else {
 				fmt.Println("\n===AI DETECTION===")
-				// fmt.Println("Alert Message:", alert.Message)
-				// fmt.Println("Protocol:", alert.Protocol)
-				// fmt.Println("Attacker:", alert.Attacker_ip)
-				// fmt.Println("Target Port:", alert.Target_port)
+
 				EmitAlert(alert)
 
 				if ok := iptables.BlockIP(alert.Attacker_ip); ok != -1 { 
@@ -160,12 +157,6 @@ func listenAttack(ch <-chan model.Detection) {
 					}
 
 					fmt.Println("\n===RULE DETECTION===")
-					// fmt.Printf("Attacker IP: %s\n", ip)
-					// fmt.Println("method : ", last.Method)
-					// fmt.Println("Alert Message:", last.Message)
-					// fmt.Println("Protocol:", last.Protocol)
-					// fmt.Println("Attacker:", last.Attacker_ip)
-					// fmt.Printf("Target Port:%s\n", last.Target_port)
 
 					last := alerts[len(alerts)-1]
 					
@@ -174,7 +165,6 @@ func listenAttack(ch <-chan model.Detection) {
 					if ok := iptables.BlockIP(last.Attacker_ip); ok != -1 { 
 						EmitBlockIP(last.Attacker_ip)
 					}
-					// fmt.Println(last.Attacker_ip, " is blocked")
 
 				}
 

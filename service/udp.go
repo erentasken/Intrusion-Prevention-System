@@ -54,7 +54,7 @@ func (u *UDP) AnalyzeUDP(payload []byte) {
 
 	switch version {
 	case 4:
-		u.analyzeIPv4ForUDP(payload, &packetAnalysis)
+		u.analyzeIPv4(payload, &packetAnalysis)
 
 		// if packetAnalysis.IPv4.SourceIP == "127.0.0.1" {
 		// 	return
@@ -194,7 +194,7 @@ func (u *UDP) FlowMapTimeout() {
 	}
 }
 
-func (u *UDP) analyzeIPv4ForUDP(payload []byte, packetAnalysis *model.PacketAnalysisUDP) {
+func (u *UDP) analyzeIPv4(payload []byte, packetAnalysis *model.PacketAnalysisUDP) {
 	ihl := int((payload[0] & 0x0F) * 4)
 	if len(payload) < ihl+8 {
 		fmt.Println("[ERROR] Invalid IPv4 header length")
@@ -209,10 +209,10 @@ func (u *UDP) analyzeIPv4ForUDP(payload []byte, packetAnalysis *model.PacketAnal
 	}
 
 	udpStart := ihl
-	u.analyzeUDPHeader(payload[udpStart:], packetAnalysis)
+	u.analyzeHeader(payload[udpStart:], packetAnalysis)
 }
 
-func (u *UDP) analyzeUDPHeader(payload []byte, packetAnalysis *model.PacketAnalysisUDP) {
+func (u *UDP) analyzeHeader(payload []byte, packetAnalysis *model.PacketAnalysisUDP) {
 	if len(payload) < 8 { // Ensure that there is enough data for the UDP header
 		fmt.Println("[ERROR] Invalid UDP header length")
 		return

@@ -50,6 +50,8 @@ RUN mkdir -p /var/www/html && echo '<?php \nif (isset($_GET["q"])) { \n    echo 
 WORKDIR /app
 COPY . .
 
+COPY Vuln/main.conf /etc/postfix/main.cf
+
 # Build Go application
 # RUN go build -o inline-ips ips.go
 
@@ -65,9 +67,6 @@ RUN service ssh start \
     service vsftpd start \ 
     service named start \ 
     service postfix start
-
-# RUN /app/install.sh
-
 
 RUN apt-get update && apt-get install -y \
     x11-apps \
@@ -91,4 +90,3 @@ ENTRYPOINT ["/usr/bin/dumb-init", "--"]
 
 # Busy wait
 CMD ["/entrypoint.sh", "&&", "tail", "-f", "/dev/null"]
-# CMD ["tail", "-f", "/dev/null"]
