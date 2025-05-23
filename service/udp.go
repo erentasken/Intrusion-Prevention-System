@@ -56,10 +56,6 @@ func (u *UDP) AnalyzeUDP(payload []byte) {
 	case 4:
 		u.analyzeIPv4(payload, &packetAnalysis)
 
-		// if packetAnalysis.IPv4.SourceIP == "127.0.0.1" {
-		// 	return
-		// }
-
 	default:
 		fmt.Printf("[WARNING] Unsupported IP version %d\n", version)
 		return
@@ -105,35 +101,7 @@ func (u *UDP) AnalyzeUDP(payload []byte) {
 		if !exists || now.Sub(lastTS) >= time.Second {
 			u.lastPredictionTS[key] = now
 			dataString := returnDataIntoString(featureAnalyzer)
-			pred, err := getPrediction(dataString)
-			if err != nil {
-				fmt.Println("Error getting prediction:", err)
-			}
-
-			fmt.Println(key, " : ", pred)
-			splitted := strings.Split(key, "-")
-			attackerIp := splitted[0]
-			// targetPort := strings.Split(splitted[1], ":")[1]
-
-			if strings.Count(pred, "1") > 4 {
-				attack_alert := model.Detection{
-					Method:      "AI Detection",
-					Protocol:    "UDP",
-					Attacker_ip: attackerIp,
-					Target_port: featureAnalyzer.port,
-					Message:     "DDOS Attack Detected",
-				}
-
-				if featureAnalyzer.multiplePort {
-					attack_alert.Message = "Targeted on multiple port"
-				}
-
-				if attackerIp == "127.0.0.1" || attackerIp == "172.30.0.2" {
-					return
-				}
-
-				u.alert <- attack_alert
-			}
+			u.PredictAndAlert(dataString, key)
 		}
 	}
 }
@@ -152,37 +120,8 @@ func (u *UDP) FlowMapTimeout() {
 				}
 			}
 
-			// fmt.Println("[ UDP ] Timeout signal received for key: ", key)
-
-			// AI Prediction
-			pred, err := getPrediction(returnDataIntoString(u.FeatureAnalyzer[key]))
-			if err != nil {
-				fmt.Println("Error getting prediction: ", err)
-			}
-
-			fmt.Println(key, " : ", pred)
-			splitted := strings.Split(key, "-")
-			attackerIp := splitted[0]
-			// targetPort := strings.Split(splitted[1], ":")[1]
-
-			if strings.Count(pred, "1") > 4 {
-				attack_alert := model.Detection{
-					Method:      "AI Detection",
-					Protocol:    "UDP",
-					Attacker_ip: attackerIp,
-					Target_port: u.FeatureAnalyzer[key].port,
-					Message:     "DDOS Attack Detected",
-				}
-
-				if u.FeatureAnalyzer[key].multiplePort {
-					attack_alert.Message = "Targeted on multiple port"
-				}
-
-				if attackerIp != "127.0.0.1" && attackerIp != "172.30.0.2" {
-					u.alert <- attack_alert
-				}
-
-			}
+			dataString  := returnDataIntoString(u.FeatureAnalyzer[key])
+			u.PredictAndAlert(dataString, key)
 
 			delete(u.FeatureAnalyzer, key)
 
@@ -191,6 +130,37 @@ func (u *UDP) FlowMapTimeout() {
 		case <-time.After(5 * time.Second): // Prevent blocking forever
 			// PASS
 		}
+	}
+}
+
+func (u *UDP) PredictAndAlert(dataString []string , key string){
+	// AI Prediction
+	pred, err := getPrediction(dataString)
+	if err != nil {
+		fmt.Println("Error getting prediction: ", err)
+	}
+
+	fmt.Println(key, " : ", pred)
+	splitted := strings.Split(key, "-")
+	attackerIp := splitted[0]
+
+	if strings.Count(pred, "1") > 4 {
+		attack_alert := model.Detection{
+			Method:      "AI Detection",
+			Protocol:    "UDP",
+			Attacker_ip: attackerIp,
+			Target_port: u.FeatureAnalyzer[key].port,
+			Message:     "DDOS Attack Detected",
+		}
+
+		if u.FeatureAnalyzer[key].multiplePort {
+			attack_alert.Message = "Targeted on multiple port"
+		}
+
+		if attackerIp != "127.0.0.1" && attackerIp != "172.30.0.2" {
+			u.alert <- attack_alert
+		}
+
 	}
 }
 
