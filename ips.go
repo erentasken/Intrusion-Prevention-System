@@ -138,6 +138,9 @@ func listenAttack(ch <-chan model.Detection) {
 				continue
 			}
 			if alert.Method == "Rule Detection" {
+				if alert.Message == "POLICY-OTHER HTTP request by IPv4 address attempt"{
+					continue
+				}
 				alertMap[alert.Attacker_ip] = append(alertMap[alert.Attacker_ip], alert)
 			} else {
 				fmt.Println("\n===AI DETECTION===")

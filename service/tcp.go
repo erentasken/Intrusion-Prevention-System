@@ -110,7 +110,7 @@ func (t *TCP) AnalyzeTCP(payload []byte) {
 			splitted := strings.Split(key, "-")
 			attackerIp := splitted[0]
 
-			if strings.Count(pred, "1") >= 3 {
+			if strings.Count(pred, "1") > 4 {
 				attack_alert := model.Detection{
 					Method:      "AI Detection",
 					Protocol:    "TCP",
@@ -158,7 +158,7 @@ func (t *TCP) FlowMapTimeout() {
 			attackerIp := splitted[0]
 			// targetPort := strings.Split(splitted[1], ":")[1]
 
-			if strings.Count(pred, "1") >= 3 {
+			if strings.Count(pred, "1") > 4 {
 				attack_alert := model.Detection{
 					Method:      "AI Detection",
 					Protocol:    "TCP",

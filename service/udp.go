@@ -115,7 +115,7 @@ func (u *UDP) AnalyzeUDP(payload []byte) {
 			attackerIp := splitted[0]
 			// targetPort := strings.Split(splitted[1], ":")[1]
 
-			if strings.Count(pred, "1") >= 3 {
+			if strings.Count(pred, "1") > 4 {
 				attack_alert := model.Detection{
 					Method:      "AI Detection",
 					Protocol:    "UDP",
@@ -165,7 +165,7 @@ func (u *UDP) FlowMapTimeout() {
 			attackerIp := splitted[0]
 			// targetPort := strings.Split(splitted[1], ":")[1]
 
-			if strings.Count(pred, "1") >= 3 {
+			if strings.Count(pred, "1") > 4 {
 				attack_alert := model.Detection{
 					Method:      "AI Detection",
 					Protocol:    "UDP",
