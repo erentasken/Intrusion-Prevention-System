@@ -73,6 +73,34 @@ func (a *App) startup(ctx context.Context) {
 		}
 	})
 
+	runtime.EventsOn(ctx, "detector", func(args ...interface{}){
+		if len(args) > 0 { 
+			if detector, ok := args[0].(string); ok{ 
+				if detector == "unswb"{
+					if ToggleUNSW { 
+						ToggleUNSW = false
+					}else {
+						ToggleUNSW = true
+					}
+					fmt.Println("toggle unswb")
+				}else if detector == "own"{
+					if ToggleOwn{
+						ToggleOwn = false
+					}else{
+						ToggleOwn = true
+					}
+					fmt.Println("toggle own : ", ToggleOwn)
+				}else if detector == "snort"{ 
+					if ToggleSnort { 
+						ToggleSnort = false
+					}else{ 
+						ToggleSnort = true
+					}
+					fmt.Println("toggle snort")
+				}
+			}
+		}
+	})
 
 }
 

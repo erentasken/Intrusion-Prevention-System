@@ -93,7 +93,7 @@ func (t *TCP) AnalyzeTCP(payload []byte) {
 	featureAnalyzer.updateFeatures(&packetAnalysis, direction)
 
 	// AI PREDICTION
-	if int(featureAnalyzer.features.FlowDuration/1e6)%4 == 3 {
+	if int(featureAnalyzer.features.FlowDuration/1e6)%3 == 2 {
 		lastTS, exists := t.lastPredictionTS[key]
 		now := time.Now()
 
@@ -148,8 +148,8 @@ func (t *TCP) PredictAndAlert(dataString []string, key string){
 		attack_alert := model.Detection{
 			Method:      "AI Detection",
 			Protocol:    "TCP",
-			Attacker_ip: attackerIp,
-			Target_port: t.FeatureAnalyzer[key].port,
+			AttackerIP: attackerIp,
+			TargetPort: t.FeatureAnalyzer[key].port,
 			Message:     "DDOS Attack Detected",
 		}
 
@@ -157,9 +157,10 @@ func (t *TCP) PredictAndAlert(dataString []string, key string){
 			attack_alert.Message = "Targeted on multiple port"
 		}
 
-		if attackerIp != "127.0.0.1" && attackerIp != "172.30.0.2" {
-			t.alert <- attack_alert
-		}
+		// if attackerIp != "127.0.0.1" && attackerIp != "172.30.0.2" {
+		// 	t.alert <- attack_alert
+		// }
+		t.alert <- attack_alert
 
 	}
 }

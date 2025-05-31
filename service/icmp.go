@@ -89,7 +89,7 @@ func (i *ICMP) AnalyzeICMP(payload []byte) {
 	featureAnalyzer.updateFeaturesICMP(&packetAnalysis, direction)
 
 	// AI PREDICTION :
-	if int(featureAnalyzer.features.FlowDuration/1e6)%4 == 3 {
+	if int(featureAnalyzer.features.FlowDuration/1e6)%3 == 2 {
 		lastTS, exists := i.lastPredictionTS[key]
 		now := time.Now()
 
@@ -120,14 +120,13 @@ func (i *ICMP) PredictAndAlert(dataString []string, key string){
 		attack_alert := model.Detection{
 			Method:      "AI Detection",
 			Protocol:    "ICMP",
-			Attacker_ip: attackerIp,
-			Target_port: "",
+			AttackerIP: attackerIp,
+			TargetPort: "",
 			Message:     "DDOS Attack Detected",
 		}
 
-		if attackerIp != "127.0.0.1" && attackerIp != "172.30.0.2" && attackerIp != "127.0.0.11" {
-			i.alert <- attack_alert
-		}
+		i.alert <- attack_alert
+
 	}
 }
 

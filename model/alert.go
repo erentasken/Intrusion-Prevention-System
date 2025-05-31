@@ -1,9 +1,9 @@
 package model
 
 type Detection struct {
-	Method      string
-	Protocol    string
-	Attacker_ip string
-	Target_port string
-	Message     string
+	Method     string `json:"Method"`
+	Protocol   string `json:"Protocol"`
+	AttackerIP string `json:"Attacker_ip"`
+	TargetPort string `json:"Target_port"`
+	Message    string `json:"Message"`
 }

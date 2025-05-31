@@ -5,6 +5,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 
 export default function Home() {
+  const [unswOn, setUnswOn] = useState(true); // default ON
+  const [ownOn, setOwnOn] = useState(true); // default ON
+  const [snortOn, setSnortOn] = useState(true); // default ON
+
   const [tcpCollectorOn, setTcpCollectorOn] = useState(false);
   const [udpCollectorOn, setUdpCollectorOn] = useState(false);
   const [icmpCollectorOn, setIcmpCollectorOn] = useState(false);
@@ -136,6 +140,65 @@ export default function Home() {
             ⚠️ No automatic IP Blocking while in collector mode.
           </div>
         )}
+      </div>
+
+      {/* CSV Data Collector Status Table with Switches */}
+      <div className="gap-6 mt-6">
+        <Card>
+          <CardHeader>
+            <CardTitle>Detectors</CardTitle>
+          </CardHeader>
+          <CardContent className="overflow-x-auto">
+            <table className="w-full table-auto border-collapse text-sm">
+              <thead>
+                <tr className="bg-gray-100 text-left">
+                  <th className="p-2">UNSWB</th>
+                  <th className="p-2">OWN</th>
+                  <th className="p-2">Snort</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr className="border-t">
+                  <td className="p-2">
+                    <div className="flex items-center space-x-2">
+                      <Switch
+                        checked={unswOn}
+                        onCheckedChange={(val) => {
+                          setUnswOn(val);
+                          EventsEmit("detector", "unswb");
+                        }}
+                      />
+                    </div>
+                  </td>
+
+                  <td className="p-2">
+                    <div className="flex items-center space-x-2">
+                      <Switch
+                        checked={ownOn}
+                        onCheckedChange={(val) => {
+                          setOwnOn(val);
+                          EventsEmit("detector", "own");
+                        }}
+                      />
+                    </div>
+                  </td>
+
+                  <td className="p-2">
+                    <div className="flex items-center space-x-2">
+                      <Switch
+                        checked={snortOn}
+                        onCheckedChange={(val) => {
+                          setSnortOn(val);
+                          EventsEmit("detector", "snort");
+                        }}
+                      />
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </CardContent>
+        </Card>
       </div>
 
       {/* CSV Data Collector Status Table with Switches */}

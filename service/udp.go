@@ -93,7 +93,7 @@ func (u *UDP) AnalyzeUDP(payload []byte) {
 	featureAnalyzer.updateFeaturesUDP(&packetAnalysis, direction)
 
 	// AI PREDICTION
-	if int(featureAnalyzer.features.FlowDuration/1e6)%4 == 1 {
+	if int(featureAnalyzer.features.FlowDuration/1e6)%2 == 1 {
 		lastTS, exists := u.lastPredictionTS[key]
 		now := time.Now()
 
@@ -148,8 +148,8 @@ func (u *UDP) PredictAndAlert(dataString []string , key string){
 		attack_alert := model.Detection{
 			Method:      "AI Detection",
 			Protocol:    "UDP",
-			Attacker_ip: attackerIp,
-			Target_port: u.FeatureAnalyzer[key].port,
+			AttackerIP: attackerIp,
+			TargetPort: u.FeatureAnalyzer[key].port,
 			Message:     "DDOS Attack Detected",
 		}
 
@@ -157,9 +157,8 @@ func (u *UDP) PredictAndAlert(dataString []string , key string){
 			attack_alert.Message = "Targeted on multiple port"
 		}
 
-		if attackerIp != "127.0.0.1" && attackerIp != "172.30.0.2" {
-			u.alert <- attack_alert
-		}
+		u.alert <- attack_alert
+
 
 	}
 }
