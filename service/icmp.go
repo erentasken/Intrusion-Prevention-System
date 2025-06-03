@@ -116,7 +116,7 @@ func (i *ICMP) PredictAndAlert(dataString []string, key string){
 
 	count := strings.Count(pred, "1")
 
-	if count >= 2 {
+	if count > 5 {
 		attack_alert := model.Detection{
 			Method:      "AI Detection",
 			Protocol:    "ICMP",

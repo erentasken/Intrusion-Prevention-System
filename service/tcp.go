@@ -144,7 +144,7 @@ func (t *TCP) PredictAndAlert(dataString []string, key string){
 	attackerIp := splitted[0]
 	// targetPort := strings.Split(splitted[1], ":")[1]
 
-	if strings.Count(pred, "1") > 4 {
+	if strings.Count(pred, "1") > 5 {
 		attack_alert := model.Detection{
 			Method:      "AI Detection",
 			Protocol:    "TCP",

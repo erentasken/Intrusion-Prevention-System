@@ -144,7 +144,7 @@ func (u *UDP) PredictAndAlert(dataString []string , key string){
 	splitted := strings.Split(key, "-")
 	attackerIp := splitted[0]
 
-	if strings.Count(pred, "1") > 4 {
+	if strings.Count(pred, "1") > 5 {
 		attack_alert := model.Detection{
 			Method:      "AI Detection",
 			Protocol:    "UDP",

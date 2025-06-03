@@ -3,6 +3,7 @@ FROM python:3.10-slim
 
 # Set the working directory inside the container
 WORKDIR /app
+RUN apt-get update && apt-get install -y libgomp1
 
 # Copy only the requirements.txt first (for Docker caching)
 COPY requirements.txt /app/

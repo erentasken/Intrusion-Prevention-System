@@ -377,7 +377,7 @@ func listenAttack(ch <-chan model.Detection) {
 	for {
 		select {
 		case alert := <-ch:
-			if alert.AttackerIP == "172.30.0.1" || alert.AttackerIP == "172.30.0.2" ||  alert.AttackerIP ==  "127.0.0.1" {
+			if alert.AttackerIP == "172.30.0.1" || alert.AttackerIP == "172.30.0.2" ||  alert.AttackerIP ==  "127.0.0.1" || alert.AttackerIP == "127.0.0.11" {
 				continue
 			}
 			if alert.Method == "Rule Detection" {
@@ -401,7 +401,7 @@ func listenAttack(ch <-chan model.Detection) {
 		case <-ticker.C:
 			if len(alertMap) > 0 {
 				for ip, alerts := range alertMap {
-					if ip == "172.30.0.1" || ip == "172.30.0.2" || ip ==  "127.0.0.1" {
+					if ip == "172.30.0.1" || ip == "172.30.0.2" || ip ==  "127.0.0.1" || ip == "127.0.0.11" {
 						continue
 					}
 
