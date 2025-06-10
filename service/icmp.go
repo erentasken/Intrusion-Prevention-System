@@ -112,7 +112,7 @@ func (i *ICMP) PredictAndAlert(dataString []string, key string){
 
 	splitted := strings.Split(key, "-")
 	attackerIp := splitted[0]
-	fmt.Println(key, " : ", pred)
+	// fmt.Println(key, " : ", pred)
 
 	count := strings.Count(pred, "1")
 

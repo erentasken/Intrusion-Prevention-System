@@ -82,12 +82,12 @@ func (a *App) startup(ctx context.Context) {
 					}else {
 						ToggleUNSW = true
 					}
-					fmt.Println("toggle unswb")
 				}else if detector == "own"{
 					if ToggleOwn{
 						ToggleOwn = false
 					}else{
 						ToggleOwn = true
+						StartOwn = true
 					}
 					fmt.Println("toggle own : ", ToggleOwn)
 				}else if detector == "snort"{ 
@@ -96,6 +96,7 @@ func (a *App) startup(ctx context.Context) {
 					}else{ 
 						ToggleSnort = true
 					}
+
 					fmt.Println("toggle snort")
 				}
 			}

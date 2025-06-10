@@ -1,206 +1,3 @@
-// package main
-
-// import (
-// 	"context"
-// 	"fmt"
-// 	"main/iptables"
-// 	"main/model"
-// 	"main/service"
-// 	"os"
-// 	"os/signal"
-// 	"strconv"
-// 	"syscall"
-// 	"time"
-
-// 	"github.com/florianl/go-nfqueue"
-// 	"github.com/joho/godotenv"
-// 	"github.com/mdlayher/netlink"
-// )
-
-// var toggleListenqueue bool
-// var cancelListen context.CancelFunc
-
-// func StartSystem() {
-// 	time.Sleep(7 * time.Second)
-// 	fmt.Println("Starting IPS System...")
-
-// 	// Load .env
-// 	if err := godotenv.Load(".env"); err != nil {
-// 		fmt.Println("Error loading .env file:", err)
-// 		os.Exit(1)
-// 	}
-
-// 	// Prepare Netfilter queues
-// 	if err := iptables.PrepareNFQueues(); err != nil {
-// 		fmt.Println("Error preparing NFQueues:", err)
-// 		os.Exit(1)
-// 	}
-
-// 	alert := make(chan model.Detection)
-
-// 	// Initialize services
-// 	tcpService := service.NewTCP(alert)
-// 	udpService := service.NewUDP(alert)
-// 	icmp := service.NewICMP(alert)
-
-// 	// Define queues and corresponding services
-// 	queues := map[string]func([]byte){
-// 		"TCP_QUEUE":  tcpService.AnalyzeTCP,
-// 		"UDP_QUEUE":  udpService.AnalyzeUDP,
-// 		"ICMP_QUEUE": icmp.AnalyzeICMP,
-// 	}
-
-// 	// Start handlers for each queue
-// 	for envVar, handler := range queues {
-// 		queueNum, err := strconv.Atoi(os.Getenv(envVar))
-// 		if err != nil {
-// 			fmt.Printf("Invalid NFQUEUE number for %s: %v\n", envVar, err)
-// 			os.Exit(1)
-// 		}
-// 		go queueHandler(uint16(queueNum), handler)
-// 	}
-
-// 		// Start listenAttack with cancelable context
-// 	if toggleListenqueue {
-// 		var ctx context.Context
-// 		ctx, cancelListen = context.WithCancel(context.Background())
-// 		go listenAttack(ctx, alert)
-// 	}
-
-// 	// Monitor toggleListenqueue and stop listenAttack when false
-// 	go func() {
-// 		for {
-// 			time.Sleep(1 * time.Second) // Poll every second
-// 			if !toggleListenqueue && cancelListen != nil {
-// 				fmt.Println("🛑 toggleListenqueue is false. Cancelling listenAttack...")
-// 				cancelListen()
-// 				cancelListen = nil
-// 			}
-// 		}
-// 	}()
-
-// 	service.StartSnort(alert)
-
-// 	// Keep the main routine alive
-// 	select {}
-// }
-
-// func queueHandler(ctx context.Context, queueNum uint16, packetHandler func([]byte)) {
-// 	config := nfqueue.Config{
-// 		NfQueue:      queueNum,
-// 		MaxPacketLen: 0xFFFF,
-// 		MaxQueueLen:  0xFF,
-// 		Copymode:     nfqueue.NfQnlCopyPacket,
-// 		WriteTimeout: 15 * time.Millisecond,
-// 	}
-
-// 	nf, err := nfqueue.Open(&config)
-// 	if err != nil {
-// 		fmt.Printf("Could not open nfqueue socket for queue %d: %v\n", queueNum, err)
-// 		return
-// 	}
-// 	defer nf.Close()
-
-// 	if err := nf.SetOption(netlink.NoENOBUFS, true); err != nil {
-// 		fmt.Printf("Failed to set netlink option for queue %d: %v\n", queueNum, err)
-// 		return
-// 	}
-
-// 	ctx, cancel := context.WithCancel(context.Background())
-// 	defer cancel()
-
-// 	// Graceful shutdown handling
-// 	go func() {
-// 		shutdownChan := make(chan os.Signal, 1)
-// 		signal.Notify(shutdownChan, os.Interrupt, syscall.SIGTERM)
-// 		<-shutdownChan
-// 		fmt.Println("Shutting down gracefully...")
-// 		cancel()
-// 	}()
-
-// 	// NFQUEUE packet processing function
-// 	fn := func(a nfqueue.Attribute) int {
-// 		if a.PacketID == nil || a.Payload == nil {
-// 			fmt.Println("Received invalid packet attributes")
-// 			return -1
-// 		}
-
-// 		packetHandler(*a.Payload)
-
-// 		// Accept packet by default
-// 		nf.SetVerdict(*a.PacketID, nfqueue.NfAccept)
-// 		return 0
-// 	}
-
-// 	// Register queue handler
-// 	if err := nf.RegisterWithErrorFunc(ctx, fn, func(e error) int {
-// 		fmt.Println("NFQUEUE error:", e)
-// 		return -1
-// 	}); err != nil {
-// 		fmt.Println("Failed to register NFQUEUE handler:", err)
-// 		return
-// 	}
-
-// 	fmt.Printf("Listening on NFQueue [%d]...\n", queueNum)
-
-// 	<-ctx.Done()
-// }
-
-// func listenAttack(ctx context.Context, ch <-chan model.Detection) {
-// 	alertMap := make(map[string][]model.Detection)
-// 	ticker := time.NewTicker(4 * time.Second)
-// 	defer ticker.Stop()
-
-// 	for {
-// 		select {
-
-// 		case <-ctx.Done():
-// 			fmt.Println("📴 listenAttack stopped via context cancel.")
-// 			return
-// 		case alert := <-ch:
-// 			if alert.Attacker_ip == "172.30.0.1" {
-// 				continue
-// 			}
-// 			if alert.Method == "Rule Detection" {
-// 				if alert.Message == "POLICY-OTHER HTTP request by IPv4 address attempt"{
-// 					continue
-// 				}
-// 				alertMap[alert.Attacker_ip] = append(alertMap[alert.Attacker_ip], alert)
-// 			} else {
-// 				fmt.Println("\n===AI DETECTION===")
-
-// 				EmitAlert(alert)
-
-// 				if ok := iptables.BlockIP(alert.Attacker_ip); ok != -1 {
-// 					EmitBlockIP(alert.Attacker_ip)
-// 				}
-// 			}
-
-// 		case <-ticker.C:
-// 			if len(alertMap) > 0 {
-// 				for ip, alerts := range alertMap {
-// 					if ip == "172.30.0.1" {
-// 						continue
-// 					}
-
-// 					fmt.Println("\n===RULE DETECTION===")
-
-// 					last := alerts[len(alerts)-1]
-
-// 					EmitAlert(last)
-
-// 					if ok := iptables.BlockIP(last.Attacker_ip); ok != -1 {
-// 						EmitBlockIP(last.Attacker_ip)
-// 					}
-
-// 				}
-
-// 				alertMap = make(map[string][]model.Detection)
-// 			}
-// 		}
-// 	}
-// }
-
 package main
 
 import (
@@ -222,6 +19,8 @@ var ToggleOwn bool = true
 var ToggleSnort bool = true
 var ToggleUNSW bool = true
 var cancelListen context.CancelFunc
+
+var StartOwn bool = true
 
 func StartSystem() {
 	time.Sleep(7 * time.Second)
@@ -247,7 +46,6 @@ func StartSystem() {
 	// Monitor toggleListenqueue to cancel context when toggled off
 	var stopped bool = true
 	var stoppedUNSW bool = true
-	var startOwn bool = true
 	go func() {
 		for {
 			time.Sleep(1 * time.Second)
@@ -255,16 +53,15 @@ func StartSystem() {
 				fmt.Println("🛑 toggleListenqueue is false. Cancelling all handlers...")
 				cancelListen()
 				cancelListen = nil
-			}else if ToggleOwn && startOwn { 
+			}else if ToggleOwn && StartOwn { 
+				ctx, cancelListen = context.WithCancel(context.Background())
 				go startAIdetect(ctx, alert)
-				startOwn = false
+				StartOwn = false
 			}
 
 			if !ToggleSnort && !stopped{
-				fmt.Println("stopping snort")
 				stopped = service.StopSnort();
 			}else if ToggleSnort && stopped{
-				fmt.Println("start snort")
 				go service.StartSnort(alert)
 				stopped = false
 			}

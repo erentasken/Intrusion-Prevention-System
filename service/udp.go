@@ -140,7 +140,7 @@ func (u *UDP) PredictAndAlert(dataString []string , key string){
 		fmt.Println("Error getting prediction: ", err)
 	}
 
-	fmt.Println(key, " : ", pred)
+	// fmt.Println(key, " : ", pred)
 	splitted := strings.Split(key, "-")
 	attackerIp := splitted[0]
 

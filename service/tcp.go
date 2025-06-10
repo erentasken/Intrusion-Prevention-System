@@ -139,10 +139,8 @@ func (t *TCP) PredictAndAlert(dataString []string, key string){
 		fmt.Println("Error getting prediction: ", err)
 	}
 
-	fmt.Println(key, " : ", pred)
 	splitted := strings.Split(key, "-")
 	attackerIp := splitted[0]
-	// targetPort := strings.Split(splitted[1], ":")[1]
 
 	if strings.Count(pred, "1") > 5 {
 		attack_alert := model.Detection{
@@ -157,9 +155,6 @@ func (t *TCP) PredictAndAlert(dataString []string, key string){
 			attack_alert.Message = "Targeted on multiple port"
 		}
 
-		// if attackerIp != "127.0.0.1" && attackerIp != "172.30.0.2" {
-		// 	t.alert <- attack_alert
-		// }
 		t.alert <- attack_alert
 
 	}
