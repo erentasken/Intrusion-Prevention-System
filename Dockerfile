@@ -20,7 +20,17 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     python3-pip \
     python3-venv \
     dumb-init \
+    curl \
+    openjdk-11-jdk \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
+
+
+# Set environment variables including JAVA_HOME
+ENV DEBIAN_FRONTEND=noninteractive \
+    TZ=UTC \
+    JAVA_HOME=/usr/lib/jvm/java-11-openjdk-amd64 \
+    PATH="/usr/local/go/bin:/root/go/bin:/usr/lib/jvm/java-11-openjdk-amd64/bin:${PATH}"
+
 
 # Install Go
 ENV GO_VERSION=1.23.7
@@ -34,7 +44,7 @@ ENV DEBIAN_FRONTEND=noninteractive \
     PATH="/usr/local/go/bin:/root/go/bin:${PATH}"
 
 # Install air
-RUN go install github.com/air-verse/air@latest
+# RUN go install github.com/air-verse/air@latest
 
 # Configure system
 RUN echo 'root:password' | chpasswd && \
@@ -43,14 +53,26 @@ RUN echo 'root:password' | chpasswd && \
     python3 -m venv /venv && \
     /venv/bin/pip install --no-cache-dir --upgrade pip requests
 
+
+# Create Python virtual environment and install required Python packages
+RUN python3 -m venv /venv && \
+    /venv/bin/pip install --no-cache-dir --upgrade pip && \
+    /venv/bin/pip install --no-cache-dir pandas numpy joblib scapy xgboost scikit-learn
+
+# Make venv Python the default (optional)
+ENV PATH="/venv/bin:$PATH"
+
+
 # Create index.php to listen for 'q' parameter
 RUN mkdir -p /var/www/html && echo '<?php \nif (isset($_GET["q"])) { \n    echo "You searched for: " . htmlspecialchars($_GET["q"]); \n} else { \n    echo "No query received."; \n} \n?>' > /var/www/html/index.php
 
 WORKDIR /app
 COPY . .
 
+COPY Vuln/main.conf /etc/postfix/main.cf
+
 # Build Go application
-RUN go build -o inline-ips main.go
+# RUN go build -o inline-ips ips.go
 
 # Expose ports
 EXPOSE 22 80 21 53 25 12345/udp 161/udp
@@ -59,10 +81,31 @@ EXPOSE 22 80 21 53 25 12345/udp 161/udp
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
-# RUN /app/install.sh
+RUN service ssh start \
+    service apache2 start \
+    service vsftpd start \ 
+    service named start \ 
+    service postfix start
+
+RUN apt-get update && apt-get install -y \
+    x11-apps \
+    libxrender1 \
+    libxtst6 \
+    libxi6 \
+    libxext6 \
+    libgtk-3-dev \
+    pkg-config \
+    libwebkit2gtk-4.1-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Node.js and npm (LTS version)
+RUN curl -fsSL https://deb.nodesource.com/setup_lts.x | bash - && \
+    apt-get install -y nodejs
+
+# Install Wails CLI
+RUN go install github.com/wailsapp/wails/v2/cmd/wails@latest
 
 ENTRYPOINT ["/usr/bin/dumb-init", "--"]
 
 # Busy wait
 CMD ["/entrypoint.sh", "&&", "tail", "-f", "/dev/null"]
-# CMD ["tail", "-f", "/dev/null"]

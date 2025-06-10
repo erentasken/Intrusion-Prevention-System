@@ -3,4 +3,6 @@ numpy
 joblib
 xgboost
 tensorflow
-torch
+pandas
+catboost
+lightgbm

@@ -1,6 +1,7 @@
 package service
 
 import (
+	"fmt"
 	"main/model"
 	"math"
 	"slices"
@@ -41,6 +42,9 @@ type FeatureAnalyzer struct {
 
 	forwardKey    string
 	timeoutSignal chan string
+
+	port         string
+	multiplePort bool
 }
 
 const subflowTimeout = 3 * time.Second // Define subflow timeout (adjust as needed)
@@ -162,6 +166,8 @@ func GetFeatureAnalyzerInstance(packetAnalysis *model.PacketAnalysisTCP, forward
 		},
 	}
 
+	featureAnalyzer.port = fmt.Sprint(packetAnalysis.TCP.DestinationPort)
+
 	go featureAnalyzer.analyzerTimeoutChecks()
 
 	return featureAnalyzer
@@ -263,6 +269,8 @@ func GetFeatureAnalyzerInstanceUDP(packetAnalysis *model.PacketAnalysisUDP, forw
 			},
 		},
 	}
+
+	featureAnalyzer.port = fmt.Sprint(packetAnalysis.UDP.DestinationPort)
 
 	go featureAnalyzer.analyzerTimeoutChecks()
 

@@ -8,9 +8,12 @@ service vsftpd start
 service named start
 service postfix start
 
-# Start background processes
-/usr/bin/python3 /app/mock_udp_server.py &
-# /udpListener.sh &
+echo "nameserver 0.0.0.0" > /etc/resolv.conf
 
-# Start main application
-exec air -c .air.toml
+ping -c 5 google.com
+
+cd /app
+
+wails dev -tags webkit2_41
+
+tail -f /dev/null

@@ -10,6 +10,8 @@ import (
 	"time"
 )
 
+var csvToggleTcp = false
+
 type TCP struct {
 	FeatureAnalyzer  map[string]*FeatureAnalyzer
 	timeoutSignal    chan string
@@ -32,6 +34,14 @@ func NewTCP(alert chan model.Detection) *TCP {
 	return tcp
 }
 
+func CsvToggleTCP() {
+	if csvToggleTcp {
+		csvToggleTcp = false
+	} else {
+		csvToggleTcp = true
+	}
+}
+
 func (t *TCP) AnalyzeTCP(payload []byte) {
 	if len(payload) < 40 { // Ensure packet is large enough for analysis
 		fmt.Println("[ERROR] Payload size is too small to analyze.")
@@ -51,8 +61,8 @@ func (t *TCP) AnalyzeTCP(payload []byte) {
 		return
 	}
 
-	forwardKey := fmt.Sprintf("%s-%s:%d", packetAnalysis.IPv4.SourceIP, packetAnalysis.IPv4.DestinationIP, packetAnalysis.TCP.DestinationPort)
-	backwardKey := fmt.Sprintf("%s-%s:%d", packetAnalysis.IPv4.DestinationIP, packetAnalysis.IPv4.SourceIP, packetAnalysis.TCP.SourcePort)
+	forwardKey := fmt.Sprintf("%s-%s", packetAnalysis.IPv4.SourceIP, packetAnalysis.IPv4.DestinationIP)
+	backwardKey := fmt.Sprintf("%s-%s", packetAnalysis.IPv4.DestinationIP, packetAnalysis.IPv4.SourceIP)
 
 	t.mutexLock.Lock()
 	defer t.mutexLock.Unlock()
@@ -76,39 +86,23 @@ func (t *TCP) AnalyzeTCP(payload []byte) {
 		return
 	}
 
+	if featureAnalyzer.port != fmt.Sprint(packetAnalysis.TCP.DestinationPort) && direction == "forward" {
+		featureAnalyzer.multiplePort = true
+	}
+
 	featureAnalyzer.updateFeatures(&packetAnalysis, direction)
 
 	// AI PREDICTION
-	if int(featureAnalyzer.features.FlowDuration/1e6)%7 == 4 {
+	if int(featureAnalyzer.features.FlowDuration/1e6)%3 == 2 {
 		lastTS, exists := t.lastPredictionTS[key]
 		now := time.Now()
 
 		// Ensure at least 1 second has passed since the last prediction
 		if !exists || now.Sub(lastTS) >= time.Second {
-			t.lastPredictionTS[key] = now
+			t.lastPredictionTS[key] = now	
 			dataString := returnDataIntoString(featureAnalyzer)
-			pred, err := getPrediction(dataString)
-			if err != nil {
-				fmt.Println("Error getting prediction:", err)
-			}
-
-			fmt.Println(key, " : ", pred)
-			splitted := strings.Split(key, "-")
-			attackerIp := splitted[0]
-			targetPort := strings.Split(splitted[1], ":")[1]
-
-			if strings.Count(pred, "1") >= 2 {
-				attack_alert := model.Detection{
-					Method:      "AI Detection",
-					Protocol:    "TCP",
-					Attacker_ip: attackerIp,
-					Target_port: targetPort,
-					Message:     "DDOS Attack Detected",
-				}
-
-				t.alert <- attack_alert
-			}
-
+			
+			t.PredictAndAlert(dataString, key)
 		}
 	}
 }
@@ -119,41 +113,50 @@ func (t *TCP) FlowMapTimeout() {
 		select {
 		case key = <-t.timeoutSignal:
 			t.mutexLock.Lock()
-			// err := WriteToCSV("tcp_normal", t.FeatureAnalyzer[key])
-			// if err != nil {
-			// 	fmt.Println("Error writing to CSV file: ", err)
-			// }
 
-			// fmt.Println("[ TCP ] Timeout signal received for key: ", key)
-
-			// AI Prediction
-			pred, err := getPrediction(returnDataIntoString(t.FeatureAnalyzer[key]))
-			if err != nil {
-				fmt.Println("Error getting prediction: ", err)
-			}
-
-			fmt.Println(key, " : ", pred)
-			splitted := strings.Split(key, "-")
-			attackerIp := splitted[0]
-			targetPort := strings.Split(splitted[1], ":")[1]
-
-			if strings.Count(pred, "1") >= 2 {
-				attack_alert := model.Detection{
-					Method:      "AI Detection",
-					Protocol:    "TCP",
-					Attacker_ip: attackerIp,
-					Target_port: targetPort,
-					Message:     "DDOS Attack Detected",
+			if csvToggleTcp {
+				err := WriteToCSV("tcp", t.FeatureAnalyzer[key])
+				if err != nil {
+					fmt.Println("Error writing to CSV file: ", err)
 				}
-
-				t.alert <- attack_alert
 			}
+			dataString := returnDataIntoString(t.FeatureAnalyzer[key])
+
+			t.PredictAndAlert(dataString, key)
 
 			delete(t.FeatureAnalyzer, key)
 			t.mutexLock.Unlock()
 		case <-time.After(3 * time.Second): // Prevent blocking forever
 			// PASS
 		}
+	}
+}
+
+func (t *TCP) PredictAndAlert(dataString []string, key string){
+	// AI Prediction
+	pred, err := getPrediction(dataString)
+	if err != nil {
+		fmt.Println("Error getting prediction: ", err)
+	}
+
+	splitted := strings.Split(key, "-")
+	attackerIp := splitted[0]
+
+	if strings.Count(pred, "1") > 5 {
+		attack_alert := model.Detection{
+			Method:      "AI Detection",
+			Protocol:    "TCP",
+			AttackerIP: attackerIp,
+			TargetPort: t.FeatureAnalyzer[key].port,
+			Message:     "DDOS Attack Detected",
+		}
+
+		if t.FeatureAnalyzer[key].multiplePort {
+			attack_alert.Message = "Targeted on multiple port"
+		}
+
+		t.alert <- attack_alert
+
 	}
 }
 
@@ -172,10 +175,10 @@ func (t *TCP) analyzeIPv4(payload []byte, packetAnalysis *model.PacketAnalysisTC
 	}
 
 	tcpStart := ihl
-	t.analyzeTCPHeader(payload[tcpStart:], packetAnalysis)
+	t.analyzeHeader(payload[tcpStart:], packetAnalysis)
 }
 
-func (t *TCP) analyzeTCPHeader(payload []byte, packetAnalysis *model.PacketAnalysisTCP) {
+func (t *TCP) analyzeHeader(payload []byte, packetAnalysis *model.PacketAnalysisTCP) {
 	if len(payload) < 20 { // Ensure that there is enough data for the TCP header
 		fmt.Println("[ERROR] Invalid TCP header length")
 		return

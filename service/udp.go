@@ -10,6 +10,8 @@ import (
 	"time"
 )
 
+var csvToggleUdp = false
+
 type UDP struct {
 	FeatureAnalyzer  map[string]*FeatureAnalyzer
 	timeoutSignal    chan string
@@ -31,6 +33,14 @@ func NewUDP(alert chan model.Detection) *UDP {
 	return udp
 }
 
+func CsvToggleUDP() {
+	if csvToggleUdp {
+		csvToggleUdp = false
+	} else {
+		csvToggleUdp = true
+	}
+}
+
 func (u *UDP) AnalyzeUDP(payload []byte) {
 	if len(payload) < 28 { // Ensure packet is large enough for analysis
 		fmt.Println("[ERROR] Payload size is too small to analyze.")
@@ -44,14 +54,15 @@ func (u *UDP) AnalyzeUDP(payload []byte) {
 
 	switch version {
 	case 4:
-		u.analyzeIPv4ForUDP(payload, &packetAnalysis)
+		u.analyzeIPv4(payload, &packetAnalysis)
+
 	default:
 		fmt.Printf("[WARNING] Unsupported IP version %d\n", version)
 		return
 	}
 
-	forwardKey := fmt.Sprintf("%s-%s:%d", packetAnalysis.IPv4.SourceIP, packetAnalysis.IPv4.DestinationIP, packetAnalysis.UDP.DestinationPort)
-	backwardKey := fmt.Sprintf("%s-%s:%d", packetAnalysis.IPv4.DestinationIP, packetAnalysis.IPv4.SourceIP, packetAnalysis.UDP.SourcePort)
+	forwardKey := fmt.Sprintf("%s-%s", packetAnalysis.IPv4.SourceIP, packetAnalysis.IPv4.DestinationIP)
+	backwardKey := fmt.Sprintf("%s-%s", packetAnalysis.IPv4.DestinationIP, packetAnalysis.IPv4.SourceIP)
 
 	u.mutexLock.Lock()
 	defer u.mutexLock.Unlock()
@@ -75,10 +86,14 @@ func (u *UDP) AnalyzeUDP(payload []byte) {
 		return
 	}
 
+	if featureAnalyzer.port != fmt.Sprint(packetAnalysis.UDP.DestinationPort) {
+		featureAnalyzer.multiplePort = true
+	}
+
 	featureAnalyzer.updateFeaturesUDP(&packetAnalysis, direction)
 
 	// AI PREDICTION
-	if int(featureAnalyzer.features.FlowDuration/1e6)%7 == 4 {
+	if int(featureAnalyzer.features.FlowDuration/1e6)%2 == 1 {
 		lastTS, exists := u.lastPredictionTS[key]
 		now := time.Now()
 
@@ -86,27 +101,7 @@ func (u *UDP) AnalyzeUDP(payload []byte) {
 		if !exists || now.Sub(lastTS) >= time.Second {
 			u.lastPredictionTS[key] = now
 			dataString := returnDataIntoString(featureAnalyzer)
-			pred, err := getPrediction(dataString)
-			if err != nil {
-				fmt.Println("Error getting prediction:", err)
-			}
-
-			fmt.Println(key, " : ", pred)
-			splitted := strings.Split(key, "-")
-			attackerIp := splitted[0]
-			targetPort := strings.Split(splitted[1], ":")[1]
-
-			if strings.Count(pred, "1") >= 2 {
-				attack_alert := model.Detection{
-					Method:      "AI Detection",
-					Protocol:    "UDP",
-					Attacker_ip: attackerIp,
-					Target_port: targetPort,
-					Message:     "DDOS Attack Detected",
-				}
-
-				u.alert <- attack_alert
-			}
+			u.PredictAndAlert(dataString, key)
 		}
 	}
 }
@@ -118,35 +113,15 @@ func (u *UDP) FlowMapTimeout() {
 		case key = <-u.timeoutSignal:
 			u.mutexLock.Lock()
 
-			// err := WriteToCSV("udp_normal", u.FeatureAnalyzer[key])
-			// if err != nil {
-			// 	fmt.Println("Error writing to CSV file: ", err)
-			// }
-
-			// fmt.Println("[ UDP ] Timeout signal received for key: ", key)
-
-			// AI Prediction
-			pred, err := getPrediction(returnDataIntoString(u.FeatureAnalyzer[key]))
-			if err != nil {
-				fmt.Println("Error getting prediction: ", err)
-			}
-
-			fmt.Println(key, " : ", pred)
-			splitted := strings.Split(key, "-")
-			attackerIp := splitted[0]
-			targetPort := strings.Split(splitted[1], ":")[1]
-
-			if strings.Count(pred, "1") >= 2 {
-				attack_alert := model.Detection{
-					Method:      "AI Detection",
-					Protocol:    "UDP",
-					Attacker_ip: attackerIp,
-					Target_port: targetPort,
-					Message:     "DDOS Attack Detected",
+			if csvToggleUdp {
+				err := WriteToCSV("udp", u.FeatureAnalyzer[key])
+				if err != nil {
+					fmt.Println("Error writing to CSV file: ", err)
 				}
-
-				u.alert <- attack_alert
 			}
+
+			dataString  := returnDataIntoString(u.FeatureAnalyzer[key])
+			u.PredictAndAlert(dataString, key)
 
 			delete(u.FeatureAnalyzer, key)
 
@@ -158,7 +133,37 @@ func (u *UDP) FlowMapTimeout() {
 	}
 }
 
-func (u *UDP) analyzeIPv4ForUDP(payload []byte, packetAnalysis *model.PacketAnalysisUDP) {
+func (u *UDP) PredictAndAlert(dataString []string , key string){
+	// AI Prediction
+	pred, err := getPrediction(dataString)
+	if err != nil {
+		fmt.Println("Error getting prediction: ", err)
+	}
+
+	// fmt.Println(key, " : ", pred)
+	splitted := strings.Split(key, "-")
+	attackerIp := splitted[0]
+
+	if strings.Count(pred, "1") > 5 {
+		attack_alert := model.Detection{
+			Method:      "AI Detection",
+			Protocol:    "UDP",
+			AttackerIP: attackerIp,
+			TargetPort: u.FeatureAnalyzer[key].port,
+			Message:     "DDOS Attack Detected",
+		}
+
+		if u.FeatureAnalyzer[key].multiplePort {
+			attack_alert.Message = "Targeted on multiple port"
+		}
+
+		u.alert <- attack_alert
+
+
+	}
+}
+
+func (u *UDP) analyzeIPv4(payload []byte, packetAnalysis *model.PacketAnalysisUDP) {
 	ihl := int((payload[0] & 0x0F) * 4)
 	if len(payload) < ihl+8 {
 		fmt.Println("[ERROR] Invalid IPv4 header length")
@@ -173,10 +178,10 @@ func (u *UDP) analyzeIPv4ForUDP(payload []byte, packetAnalysis *model.PacketAnal
 	}
 
 	udpStart := ihl
-	u.analyzeUDPHeader(payload[udpStart:], packetAnalysis)
+	u.analyzeHeader(payload[udpStart:], packetAnalysis)
 }
 
-func (u *UDP) analyzeUDPHeader(payload []byte, packetAnalysis *model.PacketAnalysisUDP) {
+func (u *UDP) analyzeHeader(payload []byte, packetAnalysis *model.PacketAnalysisUDP) {
 	if len(payload) < 8 { // Ensure that there is enough data for the UDP header
 		fmt.Println("[ERROR] Invalid UDP header length")
 		return
