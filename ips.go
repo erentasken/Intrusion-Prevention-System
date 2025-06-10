@@ -7,15 +7,20 @@ import (
 	"main/model"
 	"main/service"
 	"os"
-	"os/signal"
 	"strconv"
-	"syscall"
 	"time"
 
 	"github.com/florianl/go-nfqueue"
 	"github.com/joho/godotenv"
 	"github.com/mdlayher/netlink"
 )
+
+var ToggleOwn bool = true
+var ToggleSnort bool = true
+var ToggleUNSW bool = true
+var cancelListen context.CancelFunc
+
+var StartOwn bool = true
 
 func StartSystem() {
 	time.Sleep(7 * time.Second)
@@ -34,38 +39,86 @@ func StartSystem() {
 	}
 
 	alert := make(chan model.Detection)
+	
+	// Start handlers only if toggle is ON
+	var ctx context.Context
+	ctx, cancelListen = context.WithCancel(context.Background())
+	// Monitor toggleListenqueue to cancel context when toggled off
+	var stopped bool = true
+	var stoppedUNSW bool = true
+	go func() {
+		for {
+			time.Sleep(1 * time.Second)
+			if !ToggleOwn && cancelListen != nil {
+				fmt.Println("🛑 toggleListenqueue is false. Cancelling all handlers...")
+				cancelListen()
+				cancelListen = nil
+			}else if ToggleOwn && StartOwn { 
+				ctx, cancelListen = context.WithCancel(context.Background())
+				go startAIdetect(ctx, alert)
+				StartOwn = false
+			}
 
+			if !ToggleSnort && !stopped{
+				stopped = service.StopSnort();
+			}else if ToggleSnort && stopped{
+				go service.StartSnort(alert)
+				stopped = false
+			}
+
+			if !stoppedUNSW && !ToggleUNSW{
+				service.StopUNSWRunnable()
+				stoppedUNSW = true
+			}else if ToggleUNSW && stoppedUNSW{ 
+				fmt.Println("🚀 Starting UNSW runner (Python)...")
+				stoppedUNSW = false
+
+				go func() {
+					err := service.StartUNSWRunnable(alert)
+					if err != nil {
+						fmt.Println("❌ Error starting UNSW runner:", err)
+					} else {
+						fmt.Println("✅ UNSW runner started and output reading goroutine launched")
+					}
+				}()
+			}
+
+		}
+	}()
+
+	go listenAttack(alert)
+	
+	// Keep main alive indefinitely
+	select {}
+}
+
+func startAIdetect(ctx context.Context, alert chan model.Detection) { 
 	// Initialize services
 	tcpService := service.NewTCP(alert)
 	udpService := service.NewUDP(alert)
 	icmp := service.NewICMP(alert)
 
-	// Define queues and corresponding services
+	// Define queues and corresponding handlers
 	queues := map[string]func([]byte){
 		"TCP_QUEUE":  tcpService.AnalyzeTCP,
 		"UDP_QUEUE":  udpService.AnalyzeUDP,
 		"ICMP_QUEUE": icmp.AnalyzeICMP,
 	}
 
-	// Start handlers for each queue
+	// Start queue handlers with shared context
 	for envVar, handler := range queues {
 		queueNum, err := strconv.Atoi(os.Getenv(envVar))
 		if err != nil {
 			fmt.Printf("Invalid NFQUEUE number for %s: %v\n", envVar, err)
 			os.Exit(1)
 		}
-		go queueHandler(uint16(queueNum), handler)
+		go queueHandler(ctx, uint16(queueNum), handler)
 	}
 
-	go listenAttack(alert)
-
-	service.StartSnort(alert)
-
-	// Keep the main routine alive
-	select {}
+	
 }
 
-func queueHandler(queueNum uint16, packetHandler func([]byte)) {
+func queueHandler(ctx context.Context, queueNum uint16, packetHandler func([]byte)) {
 	config := nfqueue.Config{
 		NfQueue:      queueNum,
 		MaxPacketLen: 0xFFFF,
@@ -86,18 +139,6 @@ func queueHandler(queueNum uint16, packetHandler func([]byte)) {
 		return
 	}
 
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
-	// Graceful shutdown handling
-	go func() {
-		shutdownChan := make(chan os.Signal, 1)
-		signal.Notify(shutdownChan, os.Interrupt, syscall.SIGTERM)
-		<-shutdownChan
-		fmt.Println("Shutting down gracefully...")
-		cancel()
-	}()
-
 	// NFQUEUE packet processing function
 	fn := func(a nfqueue.Attribute) int {
 		if a.PacketID == nil || a.Payload == nil {
@@ -107,12 +148,10 @@ func queueHandler(queueNum uint16, packetHandler func([]byte)) {
 
 		packetHandler(*a.Payload)
 
-		// Accept packet by default
 		nf.SetVerdict(*a.PacketID, nfqueue.NfAccept)
 		return 0
 	}
 
-	// Register queue handler
 	if err := nf.RegisterWithErrorFunc(ctx, fn, func(e error) int {
 		fmt.Println("NFQUEUE error:", e)
 		return -1
@@ -124,6 +163,7 @@ func queueHandler(queueNum uint16, packetHandler func([]byte)) {
 	fmt.Printf("Listening on NFQueue [%d]...\n", queueNum)
 
 	<-ctx.Done()
+	fmt.Printf("🛑 Queue [%d] handler stopped\n", queueNum)
 }
 
 func listenAttack(ch <-chan model.Detection) {
@@ -134,47 +174,43 @@ func listenAttack(ch <-chan model.Detection) {
 	for {
 		select {
 		case alert := <-ch:
-			if alert.Attacker_ip == "172.30.0.1" {
+			if alert.AttackerIP == "172.30.0.1" || alert.AttackerIP == "172.30.0.2" ||  alert.AttackerIP ==  "127.0.0.1" || alert.AttackerIP == "127.0.0.11" {
 				continue
 			}
 			if alert.Method == "Rule Detection" {
-				alertMap[alert.Attacker_ip] = append(alertMap[alert.Attacker_ip], alert)
+				if alert.Message == "POLICY-OTHER HTTP request by IPv4 address attempt" {
+					continue
+				}
+				alertMap[alert.AttackerIP] = append(alertMap[alert.AttackerIP], alert)
 			} else {
 				fmt.Println("\n===AI DETECTION===")
-				// fmt.Println("Alert Message:", alert.Message)
-				// fmt.Println("Protocol:", alert.Protocol)
-				// fmt.Println("Attacker:", alert.Attacker_ip)
-				// fmt.Println("Target Port:", alert.Target_port)
+
 				EmitAlert(alert)
 
-				if ok := iptables.BlockIP(alert.Attacker_ip); ok != -1 { 
-					EmitBlockIP(alert.Attacker_ip)
+				if alert.Method == "AI Detection"{ 
+					if ok := iptables.BlockIP(alert.AttackerIP); ok != -1 {
+						EmitBlockIP(alert.AttackerIP)
+					}
 				}
+				
 			}
 
 		case <-ticker.C:
 			if len(alertMap) > 0 {
 				for ip, alerts := range alertMap {
-					if ip == "172.30.0.1" {
+					if ip == "172.30.0.1" || ip == "172.30.0.2" || ip ==  "127.0.0.1" || ip == "127.0.0.11" {
 						continue
 					}
 
 					fmt.Println("\n===RULE DETECTION===")
-					// fmt.Printf("Attacker IP: %s\n", ip)
-					// fmt.Println("method : ", last.Method)
-					// fmt.Println("Alert Message:", last.Message)
-					// fmt.Println("Protocol:", last.Protocol)
-					// fmt.Println("Attacker:", last.Attacker_ip)
-					// fmt.Printf("Target Port:%s\n", last.Target_port)
 
 					last := alerts[len(alerts)-1]
-					
+
 					EmitAlert(last)
-					
-					if ok := iptables.BlockIP(last.Attacker_ip); ok != -1 { 
-						EmitBlockIP(last.Attacker_ip)
+
+					if ok := iptables.BlockIP(last.AttackerIP); ok != -1 {
+						EmitBlockIP(last.AttackerIP)
 					}
-					// fmt.Println(last.Attacker_ip, " is blocked")
 
 				}
 

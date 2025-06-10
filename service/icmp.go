@@ -89,7 +89,7 @@ func (i *ICMP) AnalyzeICMP(payload []byte) {
 	featureAnalyzer.updateFeaturesICMP(&packetAnalysis, direction)
 
 	// AI PREDICTION :
-	if int(featureAnalyzer.features.FlowDuration/1e6)%4 == 3 {
+	if int(featureAnalyzer.features.FlowDuration/1e6)%3 == 2 {
 		lastTS, exists := i.lastPredictionTS[key]
 		now := time.Now()
 
@@ -99,29 +99,6 @@ func (i *ICMP) AnalyzeICMP(payload []byte) {
 			dataString := returnDataIntoString(featureAnalyzer)
 
 			i.PredictAndAlert(dataString, key)
-			// pred, err := getPrediction(dataString)
-			// if err != nil {
-			// 	fmt.Println("Error getting prediction:", err)
-			// }
-
-			// splitted := strings.Split(key, "-")
-			// attackerIp := splitted[0]
-
-			// count := strings.Count(pred, "1")
-
-			// if count >= 2 {
-			// 	attack_alert := model.Detection{
-			// 		Method:      "AI Detection",
-			// 		Protocol:    "ICMP",
-			// 		Attacker_ip: attackerIp,
-			// 		Target_port: "",
-			// 		Message:     "DDOS Attack Detected",
-			// 	}
-
-			// 	if attackerIp != "127.0.0.1" && attackerIp != "172.30.0.2" && attackerIp != "127.0.0.11" {
-			// 		i.alert <- attack_alert
-			// 	}
-			// }
 		}
 	}
 
@@ -135,21 +112,21 @@ func (i *ICMP) PredictAndAlert(dataString []string, key string){
 
 	splitted := strings.Split(key, "-")
 	attackerIp := splitted[0]
+	// fmt.Println(key, " : ", pred)
 
 	count := strings.Count(pred, "1")
 
-	if count >= 2 {
+	if count > 5 {
 		attack_alert := model.Detection{
 			Method:      "AI Detection",
 			Protocol:    "ICMP",
-			Attacker_ip: attackerIp,
-			Target_port: "",
+			AttackerIP: attackerIp,
+			TargetPort: "",
 			Message:     "DDOS Attack Detected",
 		}
 
-		if attackerIp != "127.0.0.1" && attackerIp != "172.30.0.2" && attackerIp != "127.0.0.11" {
-			i.alert <- attack_alert
-		}
+		i.alert <- attack_alert
+
 	}
 }
 
@@ -171,33 +148,6 @@ func (i *ICMP) FlowMapTimeout() {
 			var dataString = returnDataIntoString(i.FeatureAnalyzer[key])
 
 			i.PredictAndAlert(dataString, key)
-
-			// AI PREDICTION
-			// pred, err := getPrediction(returnDataIntoString(i.FeatureAnalyzer[key]))
-			// if err != nil {
-			// 	fmt.Println("Error getting prediction: ", err)
-			// }
-
-			// fmt.Println(key, " : ", pred)
-
-			// splitted := strings.Split(key, "-")
-			// attackerIp := splitted[0]
-
-			// count := strings.Count(pred, "1")
-
-			// if count >= 2 {
-			// 	attack_alert := model.Detection{
-			// 		Method:      "AI Detection",
-			// 		Protocol:    "ICMP",
-			// 		Attacker_ip: attackerIp,
-			// 		Target_port: "",
-			// 		Message:     "DDOS Attack Detected",
-			// 	}
-
-			// 	if attackerIp != "127.0.0.1" && attackerIp != "127.0.0.11" && attackerIp != "172.30.0.2" {
-			// 		i.alert <- attack_alert
-			// 	}
-			// }
 
 			delete(i.FeatureAnalyzer, key)
 			i.mutexLock.Unlock()
@@ -221,10 +171,10 @@ func (i *ICMP) analyzeIPv4(payload []byte, packetAnalysis *model.PacketAnalysisI
 		DestinationIP: net.IP(payload[16:20]).String(),
 	}
 
-	i.analyzeICMPHeader(payload[ihl:], packetAnalysis)
+	i.analyzeHeader(payload[ihl:], packetAnalysis)
 }
 
-func (i *ICMP) analyzeICMPHeader(payload []byte, packetAnalysis *model.PacketAnalysisICMP) {
+func (i *ICMP) analyzeHeader(payload []byte, packetAnalysis *model.PacketAnalysisICMP) {
 	if len(payload) < 4 { // Ensure there is enough data for the ICMP header
 		fmt.Println("[ERROR] Invalid ICMP header length")
 		return

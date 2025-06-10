@@ -1,0 +1,5 @@
+curl -H "Host: www.mydomain.com" http://$TARGET_IP
+sqlmap -u "http://$TARGET_IP/index.php?q=test"
+--batch --banner
+python3 ./xsstrike.py -u "http://$TARGET_IP/index.php?q=hello"
+

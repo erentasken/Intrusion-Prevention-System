@@ -21,7 +21,16 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     python3-venv \
     dumb-init \
     curl \
+    openjdk-11-jdk \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
+
+
+# Set environment variables including JAVA_HOME
+ENV DEBIAN_FRONTEND=noninteractive \
+    TZ=UTC \
+    JAVA_HOME=/usr/lib/jvm/java-11-openjdk-amd64 \
+    PATH="/usr/local/go/bin:/root/go/bin:/usr/lib/jvm/java-11-openjdk-amd64/bin:${PATH}"
+
 
 # Install Go
 ENV GO_VERSION=1.23.7
@@ -44,11 +53,23 @@ RUN echo 'root:password' | chpasswd && \
     python3 -m venv /venv && \
     /venv/bin/pip install --no-cache-dir --upgrade pip requests
 
+
+# Create Python virtual environment and install required Python packages
+RUN python3 -m venv /venv && \
+    /venv/bin/pip install --no-cache-dir --upgrade pip && \
+    /venv/bin/pip install --no-cache-dir pandas numpy joblib scapy xgboost scikit-learn
+
+# Make venv Python the default (optional)
+ENV PATH="/venv/bin:$PATH"
+
+
 # Create index.php to listen for 'q' parameter
 RUN mkdir -p /var/www/html && echo '<?php \nif (isset($_GET["q"])) { \n    echo "You searched for: " . htmlspecialchars($_GET["q"]); \n} else { \n    echo "No query received."; \n} \n?>' > /var/www/html/index.php
 
 WORKDIR /app
 COPY . .
+
+COPY Vuln/main.conf /etc/postfix/main.cf
 
 # Build Go application
 # RUN go build -o inline-ips ips.go
@@ -65,9 +86,6 @@ RUN service ssh start \
     service vsftpd start \ 
     service named start \ 
     service postfix start
-
-# RUN /app/install.sh
-
 
 RUN apt-get update && apt-get install -y \
     x11-apps \
@@ -91,4 +109,3 @@ ENTRYPOINT ["/usr/bin/dumb-init", "--"]
 
 # Busy wait
 CMD ["/entrypoint.sh", "&&", "tail", "-f", "/dev/null"]
-# CMD ["tail", "-f", "/dev/null"]

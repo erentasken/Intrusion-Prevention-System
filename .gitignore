@@ -15,6 +15,12 @@ frontend/dist
 !.yarn/releases
 !.yarn/versions
 
+AIModels/ModelTrain/AmpiricDataset
+logs/
+csv/buffer_ISCX.csv
+service/logs/
+service/csv/buffer_ISCX.csv
+service/pcap/sample.pcap
 # testing
 /coverage
 
@@ -37,7 +43,7 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
-
+Attacker/scripts/Attack/venv
 # vercel
 .vercel
 
@@ -99,3 +105,5 @@ yarn-error.log*
 .vercel
 *.tsbuildinfo
 
+AIModels/ModelTrain/venv/
+AIModels/ModelTrain/nn/python10/

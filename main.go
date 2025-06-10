@@ -33,7 +33,7 @@ func main() {
 	})
 
 	if err != nil {
-		println("Error:", err.Error())
+		println("Zort !!! Error:", err.Error())
 	}
 
 }
