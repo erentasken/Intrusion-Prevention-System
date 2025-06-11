@@ -16,11 +16,7 @@ frontend/dist
 !.yarn/versions
 
 AIModels/ModelTrain/AmpiricDataset
-logs/
-csv/buffer_ISCX.csv
-service/logs/
-service/csv/buffer_ISCX.csv
-service/pcap/sample.pcap
+
 # testing
 /coverage
 
