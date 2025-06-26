@@ -112,7 +112,6 @@ func (i *ICMP) PredictAndAlert(dataString []string, key string){
 
 	splitted := strings.Split(key, "-")
 	attackerIp := splitted[0]
-	// fmt.Println(key, " : ", pred)
 
 	count := strings.Count(pred, "1")
 
@@ -135,7 +134,6 @@ func (i *ICMP) FlowMapTimeout() {
 	for {
 		select {
 		case key = <-i.timeoutSignal:
-			// fmt.Println("Timeout signal received for key: ", key)
 			i.mutexLock.Lock()
 
 			if csvToggleIcmp {

@@ -1,8 +1,8 @@
-scikit-learn
-numpy
-joblib
-xgboost
-tensorflow
-pandas
-catboost
-lightgbm
+scikit-learn==1.6.1
+numpy==2.0.2
+joblib==1.5.1
+xgboost==2.1.4
+tensorflow==2.18.0
+pandas==2.2.2
+catboost==1.2.8
+lightgbm==4.5.0

@@ -148,6 +148,9 @@ services:
       test-network:
         ipv4_address: 172.30.0.2
     privileged: true
+    dns:
+      - 8.8.8.8
+      - 8.8.4.4
     tty: true
 
 networks:

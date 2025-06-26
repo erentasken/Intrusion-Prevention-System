@@ -183,8 +183,6 @@ func listenAttack(ch <-chan model.Detection) {
 				}
 				alertMap[alert.AttackerIP] = append(alertMap[alert.AttackerIP], alert)
 			} else {
-				fmt.Println("\n===AI DETECTION===")
-
 				EmitAlert(alert)
 
 				if alert.Method == "AI Detection"{ 
@@ -201,8 +199,6 @@ func listenAttack(ch <-chan model.Detection) {
 					if ip == "172.30.0.1" || ip == "172.30.0.2" || ip ==  "127.0.0.1" || ip == "127.0.0.11" {
 						continue
 					}
-
-					fmt.Println("\n===RULE DETECTION===")
 
 					last := alerts[len(alerts)-1]
 
