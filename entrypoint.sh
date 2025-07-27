@@ -8,7 +8,7 @@ service vsftpd start
 service named start
 service postfix start
 
-echo "nameserver 0.0.0.0" > /etc/resolv.conf
+echo "nameserver 0.0.0.0" >> /etc/resolv.conf
 
 ping -c 5 google.com
 
